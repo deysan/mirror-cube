@@ -22,7 +22,7 @@ Each step should clearly explain:
 
 ## Languages
 
-The application will support English and Ukrainian. Both languages must cover the interface and the step-by-step solution instructions, including guidance on holding and turning the puzzle.
+The current interface supports English and Ukrainian. Future step-by-step solution instructions, including guidance on holding and turning the puzzle, must also be available in both languages.
 
 Users should be able to switch languages without resetting the puzzle or their progress through a solution. Puzzle state, move identifiers, and solution search must be independent of the selected language.
 

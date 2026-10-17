@@ -4,9 +4,11 @@ import { getVisibleSolvedFaces, projectIsometric } from "../rendering/solvedView
 
 interface CubeViewProps {
   readonly cube: SolvedCube;
+  readonly title: string;
+  readonly description: string;
 }
 
-export function CubeView({ cube }: CubeViewProps) {
+export function CubeView({ cube, title, description }: CubeViewProps) {
   const titleId = useId();
   const descriptionId = useId();
   const faces = getVisibleSolvedFaces(cube).map((face) => ({
@@ -31,13 +33,11 @@ export function CubeView({ cube }: CubeViewProps) {
       className="cube-view"
       viewBox={viewBox}
       role="img"
-      aria-labelledby={`${titleId} ${descriptionId}`}
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
     >
-      <title id={titleId}>Solved 2×2 Mirror Cube</title>
-      <desc id={descriptionId}>
-        An isometric view of the top and two sides. Unequal divisions show the
-        different piece dimensions. The puzzle is static and cannot be turned yet.
-      </desc>
+      <title id={titleId}>{title}</title>
+      <desc id={descriptionId}>{description}</desc>
       {faces.map((face) => (
         <polygon
           key={`${face.pieceId}:${face.side}`}

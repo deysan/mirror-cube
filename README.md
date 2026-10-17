@@ -2,15 +2,15 @@
 
 MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. It will show how to hold the puzzle, which half to turn, and what each move does using a 3D view and animations.
 
-The application will support **English and Ukrainian**, including the interface and solution instructions. Repository documentation is written in English.
+The interface supports **English and Ukrainian**. Solution instructions will support both languages when implemented. Repository documentation is written in English.
 
 ## Current status
 
-The solved-state puzzle model and a static React/SVG view are implemented, with tests for geometry and projection. The page shows the owner's cube dimensions and its unequal divisions from a fixed isometric camera. There is no move logic, solution search, or deployment yet. The initial interface is in English; English/Ukrainian switching is planned for the next stage.
+The solved-state puzzle model, a static React/SVG view, and an English/Ukrainian language switcher are implemented. The page shows the owner's cube dimensions and its unequal divisions from a fixed isometric camera. Tests cover geometry, projection, and language switching. There is no move logic, solution search, or deployment yet.
 
 ## Local setup and checks
 
-Use Node.js 24 (recommended) and npm. The supported Node.js versions are listed in `package.json`.
+Use Node.js 24.15 or later within the 24.x release line (recommended) and npm. All supported Node.js versions are listed in `package.json`; the minimum versions account for the jsdom test environment.
 
 ```sh
 npm ci
@@ -78,7 +78,7 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 
 - `src/rendering/solvedView.ts` selects the visible exterior polygons from the model and projects their 3D vertices into 2D. It has no React or DOM dependencies.
 - `src/components/CubeView.tsx` draws those polygons in an accessible SVG and fits the `viewBox` to their projected bounds.
-- `src/App.tsx` creates the solved model once and uses it for both the SVG and displayed measurements.
+- `src/App.tsx` owns the solved model as state initialized on mount and uses it for both the SVG and displayed measurements. Language is separate state.
 - `src/styles.css` provides a responsive layout and three neutral shades to distinguish face directions.
 
 The camera looks from positive X, Y, and Z. Positive Y projects upward, positive X down-right, and positive Z down-left. The three axes are equally foreshortened and separated by 120 degrees. These are viewing conventions, not move notation or instructions for holding a physical cube yet.
@@ -97,6 +97,30 @@ Polygon borders visualize divisions without changing piece dimensions. Shading i
 
 Projection tests verify axis directions, equal foreshortening, visible outer faces, their corner coordinates, projected areas, and that deriving the view does not modify the puzzle model. Browser layout checks are currently manual, not a committed end-to-end test suite.
 
+## Interface languages
+
+`src/i18n/messages.ts` contains typed English (`en`) and Ukrainian (`uk`) dictionaries. A shared message shape requires both languages to provide every key, including full axis labels rather than language-dependent sentence fragments. Native language names are always shown on the switcher.
+
+`src/App.tsx` selects a dictionary using local language state and passes the localized SVG title and description to `CubeView`. No localization context or runtime library is needed for this single-page interface. Puzzle logic and projection do not depend on the language.
+
+Switching updates:
+
+- all page copy, measurement labels, and unit abbreviations;
+- the language switcher's accessible label and pressed state;
+- SVG accessible title and description;
+- the document's `lang`, title, and description meta tag.
+
+The default is English. Language selection is not persisted or inferred from browser settings yet; a full page reload returns to English. The static HTML also starts in English, and React updates metadata on language changes. This is not server-rendered multilingual SEO.
+
+### Language verification
+
+1. Switch from English to Ukrainian and back. Text and units should change, while the cube and its divisions remain unchanged.
+2. Use Tab to focus a language button and Enter or Space to activate it. The active language has a visible state and `aria-pressed="true"`.
+3. Inspect the document's language and title, and the SVG title/description, in both languages.
+4. Check both languages at narrow widths; longer Ukrainian text should wrap without horizontal overflow.
+
+`src/App.test.tsx` uses React Testing Library with jsdom to verify actual button clicks, localized text and metadata, model preservation, and unchanged SVG nodes and coordinates. Other tests retain Vitest's default Node environment. Dictionary tests also check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
+
 ## Documentation
 
 - [Product and MVP scope](docs/product.md)
@@ -112,7 +136,7 @@ Projection tests verify axis directions, equal foreshortening, visible outer fac
 
 Puzzle state and move rules, solution search, geometry/projection/animation, and UI should remain separate responsibilities. Add modules and dependencies only when needed for the current stage.
 
-Localization will cover user-facing text without changing puzzle logic or state. Choose the localization implementation when building the multilingual interface; do not add a library or empty translation modules in advance.
+Localization uses typed dictionaries without changing puzzle logic or state. Add translations alongside each new UI feature; introduce a localization library only if concrete needs outgrow this approach.
 
 ## Deployment on Netlify
 

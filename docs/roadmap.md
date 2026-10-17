@@ -14,19 +14,26 @@ English documentation and collaboration rules are available in the public reposi
 
 The TypeScript model and its geometry tests are committed and published. The default parameters use the owner's confirmed Cayro cube dimensions: a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z respectively.
 
-## Current stage: static view
+## Completed stage: static view
 
-The React + Vite page and fixed isometric SVG view are implemented locally for review. Rendering uses the model's dimensions and solved positions, with a separate pure projection module. The initial interface is in English. No turns, animation, localization switching, or deployment have been added.
+The React + Vite page and fixed isometric SVG view are committed and published. Rendering uses the model's dimensions and solved positions, with a separate pure projection module. The view excludes internal and rear surfaces and works at desktop and mobile widths.
+
+## Current stage: multilingual interface
+
+English and Ukrainian dictionaries and a language switcher are implemented locally for review. The language affects text, accessibility labels, and document metadata, not the puzzle model or geometry. No turns, animation, or deployment have been added.
 
 Completion criteria:
 
-- the solved cube displays its top and two sides, with unequal divisions derived from the model;
-- internal and rear faces are not drawn;
-- displayed measurements come from the same model;
-- the page works at desktop and mobile widths;
-- projection tests, type checking, and the production build pass.
+- all existing user-facing text and SVG descriptions have both translations;
+- the switcher works in both directions and indicates the active language;
+- document language, title, and description follow the selected language;
+- switching preserves the puzzle model and SVG geometry;
+- keyboard operation and layout work in both languages at desktop and mobile widths;
+- dictionary tests, UI integration tests, type checking, and the production build pass.
 
-The next proposed stage is the multilingual interface. Do not begin it until the owner approves.
+Limitations: English is the initial language; selection is not persisted across reloads. Solution-progress preservation cannot be tested until solutions and playback exist.
+
+The next proposed stage is deployment on Netlify's free plan. Do not begin it until the owner approves.
 
 ## Stage sequence
 
