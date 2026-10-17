@@ -1,3 +1,5 @@
+import type { Face, Move } from "../puzzle/moves";
+
 export const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "uk", label: "Українська" },
@@ -5,14 +7,25 @@ export const LANGUAGES = [
 
 export type Language = (typeof LANGUAGES)[number]["code"];
 
-interface Messages {
+export interface Messages {
   readonly documentTitle: string;
   readonly documentDescription: string;
   readonly languageLabel: string;
   readonly heroTitle: string;
   readonly intro: string;
   readonly overviewLabel: string;
-  readonly solvedState: string;
+  readonly readyToTurn: string;
+  readonly turning: string;
+  readonly sceneLoading: string;
+  readonly sceneFailed: string;
+  readonly controlsTitle: string;
+  readonly angleLabel: string;
+  readonly faceLabel: string;
+  readonly faceNames: Readonly<Record<Face, string>>;
+  readonly turnOptions: Readonly<Record<Move["turns"], string>>;
+  readonly directionHint: string;
+  readonly orientationHint: string;
+  readonly measurementsTitle: string;
   readonly viewLabel: string;
   readonly caption: string;
   readonly geometryEyebrow: string;
@@ -33,41 +46,63 @@ export const messages = {
     documentDescription: "A step-by-step guide to solving the 2×2 Mirror Cube. Start by exploring its geometry.",
     languageLabel: "Interface language",
     heroTitle: "A different shape of puzzle.",
-    intro: "The same finish. Eight different shapes. Get to know your Mirror Cube, starting with its solved form.",
-    overviewLabel: "Solved puzzle overview",
-    solvedState: "Solved state",
+    intro: "The same finish. Eight different shapes. Turn one layer at a time and watch your Mirror Cube change shape.",
+    overviewLabel: "Puzzle and turn controls",
+    readyToTurn: "Ready to turn",
+    turning: "Turning",
+    sceneLoading: "Loading 3D view…",
+    sceneFailed: "3D view unavailable",
+    controlsTitle: "Make a turn",
+    angleLabel: "1. Choose direction and angle",
+    faceLabel: "2. Choose a face to turn",
+    faceNames: { U: "Top", D: "Bottom", L: "Left", R: "Right", F: "Front", B: "Back" },
+    turnOptions: { 1: "90° clockwise", [-1]: "90° counterclockwise", 2: "180° half-turn" },
+    directionHint: "Clockwise is viewed directly from the selected face, not from the camera. New turns are blocked while a layer is moving.",
+    orientationHint: "Keep U on top, F toward you, and R on your right. In this view, F is the left visible side and R the right. L, D, and B face away from the camera.",
+    measurementsTitle: "Dimensions when solved",
     viewLabel: "Fixed isometric view",
-    caption: "The lines are not centered — each piece has its own dimensions.",
+    caption: "During a turn, four pieces are highlighted in amber. Each piece keeps its own dimensions.",
     geometryEyebrow: "Meet the geometry",
     geometryTitle: "One cube. Eight distinct pieces.",
     geometryDescription: "Unlike a color-based cube, a Mirror Cube is solved by shape. All outer surfaces line up when the pieces are in place.",
     cubeEdge: "Cube edge",
     axisLayers: { x: "X layers", y: "Y layers", z: "Z layers" },
     millimeters: "mm",
-    stageNote: "This first view shows the solved geometry. Turns and step-by-step instructions are not available yet.",
-    cubeTitle: "Solved 2×2 Mirror Cube",
-    cubeDescription: "A 3D isometric view of the top and two sides. Unequal divisions show the different piece dimensions. The puzzle is static and cannot be turned yet.",
-    sceneUnavailable: "The 3D view could not start. Check that WebGL 2 is available in your browser and reload the page. The cube measurements remain available below.",
+    stageNote: "Manual turns are available. History, undo, and step-by-step solutions are not implemented yet. Reloading returns to the solved state.",
+    cubeTitle: "2×2 Mirror Cube",
+    cubeDescription: "A fixed 3D isometric view of the puzzle. During a turn, four highlighted pieces rotate together; the other four remain still.",
+    sceneUnavailable: "The 3D view is unavailable. Check WebGL 2 support and reload the page. Turn controls are disabled; an unfinished turn is not applied.",
   },
   uk: {
     documentTitle: "MirrorCube — дзеркальний кубик 2×2",
     documentDescription: "Покрокова інструкція зі складання дзеркального кубика 2×2. Почніть зі знайомства з його геометрією.",
     languageLabel: "Мова інтерфейсу",
     heroTitle: "Головоломка, де головне — форма.",
-    intro: "Однакове покриття. Вісім різних форм. Познайомтеся зі своїм дзеркальним кубиком, починаючи зі складеного стану.",
-    overviewLabel: "Огляд складеного кубика",
-    solvedState: "Складений стан",
+    intro: "Однакове покриття. Вісім різних форм. Обертайте по одному шару й спостерігайте, як дзеркальний кубик змінює форму.",
+    overviewLabel: "Кубик і керування поворотами",
+    readyToTurn: "Готовий до повороту",
+    turning: "Поворот",
+    sceneLoading: "Завантаження 3D-вигляду…",
+    sceneFailed: "3D-вигляд недоступний",
+    controlsTitle: "Виконайте поворот",
+    angleLabel: "1. Оберіть напрямок і кут",
+    faceLabel: "2. Оберіть грань для повороту",
+    faceNames: { U: "Верхня", D: "Нижня", L: "Ліва", R: "Права", F: "Передня", B: "Задня" },
+    turnOptions: { 1: "90° за годинниковою", [-1]: "90° проти годинникової", 2: "180° — півоберту" },
+    directionHint: "Напрямок визначаємо, дивлячись прямо на обрану грань, а не з боку камери. Поки шар рухається, нові повороти заблоковані.",
+    orientationHint: "Тримайте U зверху, F до себе, а R праворуч. На зображенні F — ліва видима сторона, R — права. Грані L, D і B спрямовані від камери.",
+    measurementsTitle: "Розміри у складеному стані",
     viewLabel: "Фіксований ізометричний вигляд",
-    caption: "Лінії поділу зміщені від центру — кожна деталь має власні розміри.",
+    caption: "Під час повороту чотири деталі підсвічені бурштиновим кольором. Кожна деталь зберігає власні розміри.",
     geometryEyebrow: "Знайомство з геометрією",
     geometryTitle: "Один кубик. Вісім різних деталей.",
     geometryDescription: "На відміну від кольорового кубика, дзеркальний складають за формою. Коли деталі на своїх місцях, усі зовнішні поверхні розташовані врівень.",
     cubeEdge: "Ребро кубика",
     axisLayers: { x: "Шари по X", y: "Шари по Y", z: "Шари по Z" },
     millimeters: "мм",
-    stageNote: "Зараз показано геометрію складеного кубика. Повороти та покрокові інструкції ще недоступні.",
-    cubeTitle: "Складений дзеркальний кубик 2×2",
-    cubeDescription: "Об’ємний ізометричний вигляд верхньої та двох бічних поверхонь. Нерівні поділи показують різні розміри деталей. Кубик нерухомий: повороти ще недоступні.",
-    sceneUnavailable: "Не вдалося запустити об’ємне відображення. Перевірте підтримку WebGL 2 у браузері та перезавантажте сторінку. Розміри кубика залишаються доступними нижче.",
+    stageNote: "Ручні повороти вже доступні. Історію, скасування та покрокове рішення ще не реалізовано. Перезавантаження повертає складений стан.",
+    cubeTitle: "Дзеркальний кубик 2×2",
+    cubeDescription: "Фіксований об’ємний ізометричний вигляд кубика. Під час повороту чотири підсвічені деталі обертаються разом, а решта чотири залишаються нерухомими.",
+    sceneUnavailable: "Об’ємне відображення недоступне. Перевірте підтримку WebGL 2 та перезавантажте сторінку. Кнопки поворотів заблоковані; незавершений поворот не застосовано.",
   },
 } as const satisfies Record<Language, Messages>;

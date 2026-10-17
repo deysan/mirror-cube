@@ -2,7 +2,7 @@
 
 ## Scope
 
-`src/puzzle/state.ts` and `src/puzzle/moves.ts` implement complete face turns without React, SVG, Three.js, or animation. The browser still displays the static solved cube; these rules are not wired into controls yet.
+`src/puzzle/state.ts` and `src/puzzle/moves.ts` implement complete face turns without React, SVG, Three.js, or animation. The browser's [animated manual controls](animated-turns.md) apply these rules only after a visual turn completes.
 
 The functions operate on valid states created by `createSolvedState` and subsequent moves. They are not a validator or importer for arbitrary serialized puzzle states. Solved-state detection and solution search are separate future work.
 
@@ -105,4 +105,4 @@ const restored = applyMove(turned, inverseMove(move));
 
 The Three.js/React Three Fiber scene renders this data but does not own the puzzle rules. `src/rendering/pieceTransform.ts` converts each orientation and solved center into a mesh matrix. The mathematical modules do not import Three.js.
 
-The static scene and animated manual controls are separate stages; animation is not implemented yet. Intermediate animation angles will belong only to the visual layer. The exact next discrete state will be committed after a completed animation; it must not be reconstructed from floating-point mesh transforms.
+Animated manual controls are implemented separately from these rules. Intermediate angles belong only to the visual layer. The turn-session reducer commits the exact next state once animation reports completion for the active turn ID. It never reconstructs state from floating-point mesh transforms. Duplicate or stale completion callbacks are ignored.

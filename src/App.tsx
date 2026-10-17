@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { CubeView } from "./components/CubeView";
+import { MoveControls } from "./components/MoveControls";
+import { createTurnSession, turnSessionReducer } from "./interaction/turnSession";
+import type { Move } from "./puzzle/moves";
 import { LANGUAGES, messages, type Language } from "./i18n/messages";
 import { createSolvedCube } from "./puzzle/model";
 import { createSolvedState } from "./puzzle/state";
@@ -8,9 +11,31 @@ const axes = ["x", "y", "z"] as const;
 
 export function App() {
   const [cube] = useState(createSolvedCube);
-  const [puzzleState] = useState(() => createSolvedState(cube));
+  const [session, dispatch] = useReducer(turnSessionReducer, cube, (definition) =>
+    createTurnSession(createSolvedState(definition)),
+  );
   const [language, setLanguage] = useState<Language>("en");
   const text = messages[language];
+  const viewRef = useRef<HTMLElement>(null);
+  const onReady = useCallback(() => dispatch({ type: "scene-ready" }), []);
+  const onFailure = useCallback(() => dispatch({ type: "scene-failed" }), []);
+  const onTurnComplete = useCallback((id: number) => dispatch({ type: "complete", id }), []);
+  const onMove = useCallback((move: Move) => {
+    dispatch({ type: "start", move });
+    // On small screens the controls can be below the cube; keep the movement visible.
+    const canvas = viewRef.current?.querySelector("canvas");
+    if (canvas) {
+      const bounds = canvas.getBoundingClientRect();
+      if (bounds.top < 0 || bounds.bottom > window.innerHeight) {
+        canvas.scrollIntoView({ block: "center", behavior: "instant" });
+      }
+    }
+  }, []);
+  const move = session.activeTurn?.move;
+  const status = session.sceneStatus === "failed" ? text.sceneFailed
+    : session.sceneStatus === "loading" ? text.sceneLoading
+    : move ? `${text.turning}: ${move.face} · ${text.faceNames[move.face]} · ${text.turnOptions[move.turns]}`
+    : text.readyToTurn;
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -43,14 +68,19 @@ export function App() {
       </header>
 
       <section className="puzzle-layout" aria-label={text.overviewLabel}>
-        <figure className="puzzle-card">
+        <figure className="puzzle-card" ref={viewRef}>
           <div className="view-heading">
-            <span className="status">{text.solvedState}</span>
+            <span className="status" aria-live="polite" aria-atomic="true">{status}</span>
             <span>{text.viewLabel}</span>
           </div>
           <CubeView
             cube={cube}
-            state={puzzleState}
+            state={session.puzzle}
+            activeTurn={session.activeTurn}
+            onTurnComplete={onTurnComplete}
+            onReady={onReady}
+            onFailure={onFailure}
+            failed={session.sceneStatus === "failed"}
             title={text.cubeTitle}
             description={text.cubeDescription}
             unavailableMessage={text.sceneUnavailable}
@@ -58,10 +88,16 @@ export function App() {
           <figcaption>{text.caption}</figcaption>
         </figure>
 
-        <aside className="details" aria-labelledby="geometry-title">
+        <aside className="details">
+          <MoveControls
+            text={text}
+            disabled={session.sceneStatus !== "ready" || session.activeTurn !== null}
+            onMove={onMove}
+          />
           <p className="eyebrow">{text.geometryEyebrow}</p>
           <h2 id="geometry-title">{text.geometryTitle}</h2>
           <p>{text.geometryDescription}</p>
+          <h3>{text.measurementsTitle}</h3>
           <dl className="measurements">
             <div>
               <dt>{text.cubeEdge}</dt>

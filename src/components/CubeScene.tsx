@@ -1,16 +1,27 @@
-import { Canvas, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo } from "react";
-import { BoxGeometry, EdgesGeometry, OrthographicCamera } from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { BoxGeometry, EdgesGeometry, Group, OrthographicCamera } from "three";
+import type { PendingTurn } from "../interaction/turnSession";
+import { FACE_LAYERS } from "../puzzle/moves";
 import type { Piece, SolvedCube } from "../puzzle/model";
 import type { Orientation, PuzzleState } from "../puzzle/state";
-import { createPieceMatrix } from "../rendering/pieceTransform";
+import { createPieceMatrix, getPuzzleRadius } from "../rendering/pieceTransform";
+import { getTurnAngle, getTurnDuration } from "../rendering/turnAnimation";
 
 interface CubeSceneProps {
   readonly cube: SolvedCube;
   readonly state: PuzzleState;
+  readonly activeTurn: PendingTurn | null;
+  readonly onTurnComplete: (id: number) => void;
+  readonly onReady: () => void;
+  readonly onFailure: () => void;
 }
 
-function PieceMesh({ piece, orientation }: { piece: Piece; orientation: Orientation }) {
+function PieceMesh({ piece, orientation, highlighted }: {
+  piece: Piece;
+  orientation: Orientation;
+  highlighted: boolean;
+}) {
   const { x, y, z } = piece.dimensions;
   const geometry = useMemo(() => new BoxGeometry(x, y, z), [x, y, z]);
   const edges = useMemo(() => new EdgesGeometry(geometry), [geometry]);
@@ -26,7 +37,7 @@ function PieceMesh({ piece, orientation }: { piece: Piece; orientation: Orientat
     <group name={`piece:${piece.id}`} matrix={matrix} matrixAutoUpdate={false}>
       <mesh geometry={geometry}>
         <meshStandardMaterial
-          color="#ced9e1"
+          color={highlighted ? "#f5cb79" : "#ced9e1"}
           roughness={0.65}
           metalness={0.15}
           polygonOffset
@@ -41,47 +52,89 @@ function PieceMesh({ piece, orientation }: { piece: Piece; orientation: Orientat
   );
 }
 
-/** Fit the solved cube without moving the puzzle's origin away from its pivot. */
+function MovingLayer({ turn, onComplete, children }: {
+  turn: PendingTurn;
+  onComplete: (id: number) => void;
+  children: ReactNode;
+}) {
+  const group = useRef<Group>(null);
+  const elapsed = useRef(0);
+  const completed = useRef(false);
+  const invalidate = useThree((state) => state.invalidate);
+  const reducedMotion = useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
+
+  useFrame((_, delta) => {
+    if (!group.current || completed.current) return;
+    // Resume smoothly after a background tab rather than jumping over the turn.
+    elapsed.current += Math.min(delta, 0.05);
+    const progress = reducedMotion ? 1 : Math.min(1, elapsed.current / getTurnDuration(turn.move));
+    group.current.rotation[FACE_LAYERS[turn.move.face].axis] = getTurnAngle(turn.move, progress);
+    if (progress === 1) {
+      completed.current = true;
+      onComplete(turn.id);
+    } else {
+      invalidate();
+    }
+  });
+
+  return <group ref={group} name="moving-layer">{children}</group>;
+}
+
+/** A fixed pivot-centered sphere fits every pose without camera jumps between turns. */
 function FixedCamera({ cube }: { cube: SolvedCube }) {
   const { camera, size, invalidate } = useThree();
-  const { edgeLength, splits } = cube;
+  const radius = getPuzzleRadius(cube);
 
   useLayoutEffect(() => {
     if (!(camera instanceof OrthographicCamera)) return;
 
-    const center = {
-      x: edgeLength / 2 - splits.x,
-      y: edgeLength / 2 - splits.y,
-      z: edgeLength / 2 - splits.z,
-    };
-    const distance = edgeLength * 3;
-    camera.position.set(center.x + distance, center.y + distance, center.z + distance);
-    camera.lookAt(center.x, center.y, center.z);
-    // Isometric projected width and height, plus 20% breathing room.
-    camera.zoom = Math.min(
-      size.width / (edgeLength * Math.SQRT2 * 1.2),
-      size.height / (edgeLength * Math.sqrt(8 / 3) * 1.2),
-    );
-    camera.near = edgeLength * 0.01;
-    camera.far = edgeLength * 20;
+    const distance = radius * 3;
+    camera.position.set(distance, distance, distance);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = Math.min(size.width, size.height) / (radius * 2 * 1.08);
+    camera.near = radius * 0.01;
+    camera.far = radius * 20;
     camera.updateProjectionMatrix();
     invalidate();
-  }, [camera, size.width, size.height, edgeLength, splits, invalidate]);
+  }, [camera, size.width, size.height, radius, invalidate]);
 
   return null;
 }
 
-export function CubeScene({ cube, state }: CubeSceneProps) {
+function SceneLifecycle({ onReady, onFailure }: { onReady: () => void; onFailure: () => void }) {
+  const canvas = useThree((state) => state.gl.domElement);
+  useEffect(() => {
+    canvas.addEventListener("webglcontextlost", onFailure);
+    onReady();
+    return () => canvas.removeEventListener("webglcontextlost", onFailure);
+  }, [canvas, onReady, onFailure]);
+  return null;
+}
+
+export function CubeScene({ cube, state, activeTurn, onTurnComplete, onReady, onFailure }: CubeSceneProps) {
+  const moving: ReactNode[] = [];
+  const stationary: ReactNode[] = [];
+  const layer = activeTurn ? FACE_LAYERS[activeTurn.move.face] : null;
+  for (const corner of state.corners) {
+    const piece = cube.pieces.find(({ id }) => id === corner.pieceId);
+    if (!piece) throw new Error(`Missing piece definition: ${corner.pieceId}`);
+    const highlighted = layer !== null && corner.slot[layer.axis] === layer.side;
+    const mesh = <PieceMesh key={piece.id} piece={piece} orientation={corner.orientation} highlighted={highlighted} />;
+    (highlighted ? moving : stationary).push(mesh);
+  }
+
   return (
     <Canvas orthographic frameloop="demand" dpr={[1, 2]}>
+      <SceneLifecycle onReady={onReady} onFailure={onFailure} />
       <FixedCamera cube={cube} />
       <ambientLight intensity={1.1} />
       <directionalLight position={[cube.edgeLength, cube.edgeLength * 3, cube.edgeLength * 2]} intensity={2} />
-      {state.corners.map((corner) => {
-        const piece = cube.pieces.find(({ id }) => id === corner.pieceId);
-        if (!piece) throw new Error(`Missing piece definition: ${corner.pieceId}`);
-        return <PieceMesh key={piece.id} piece={piece} orientation={corner.orientation} />;
-      })}
+      {stationary}
+      {activeTurn && (
+        <MovingLayer key={activeTurn.id} turn={activeTurn} onComplete={onTurnComplete}>
+          {moving}
+        </MovingLayer>
+      )}
     </Canvas>
   );
 }

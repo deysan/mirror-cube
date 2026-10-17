@@ -6,9 +6,9 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 ## Current status
 
-The solved-state puzzle model, discrete move rules, a static Three.js/React Three Fiber scene, and an English/Ukrainian language switcher are implemented. The scene reads piece definitions and their discrete poses. Move controls are not connected to the UI yet: the page shows the solved cube from a fixed isometric camera.
+The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state is committed after the movement.
 
-There are no animated turns, solution search, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step playback are ready.
+There is no history, undo, automatic scrambling, solved-state detection, solution search, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -84,30 +84,35 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 
 Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry needed for future animation.
 
-## Static 3D view
+## 3D view and manual turns
 
 - `src/rendering/pieceTransform.ts` converts a piece's definition and orientation into a Three.js matrix. It rotates the actual solved center around the split intersection, never using slot signs as distances.
-- `src/components/CubeScene.tsx` renders eight boxes with exact local dimensions and edge outlines, using React Three Fiber. Three.js handles depth testing and hidden surfaces.
+- `src/components/CubeScene.tsx` renders eight boxes and animates the selected layer around the mechanism origin. Three.js handles depth testing and hidden surfaces.
 - `src/components/CubeView.tsx` provides the scene's accessible name/description and a localized fallback if the 3D scene cannot initialize.
-- `src/App.tsx` owns the piece definitions and discrete puzzle state, independently of language. These are passed into the view, not reconstructed from meshes.
+- `src/interaction/turnSession.ts` keeps the committed puzzle separate from the pending animation and guards completion by turn ID.
+- `src/components/MoveControls.tsx` selects direction/angle and requests a face turn.
+- `src/App.tsx` owns the definitions and session, independently of language. Puzzle state is never reconstructed from meshes.
 
-The fixed orthographic camera looks from positive X, Y, and Z toward the outer cube's geometric center. Positive Y projects upward, positive X down-right, and positive Z down-left. The camera adjusts its zoom when the viewport changes; the puzzle's origin remains at the split intersection. Current framing is designed for the solved cube and must be revisited for animated, shape-changing turns.
+The fixed orthographic camera looks from positive X, Y, and Z toward the mechanism origin. Positive Y projects upward, positive X down-right, and positive Z down-left. Its zoom fits a pivot-centered sphere that contains all pieces even during turns, avoiding clipping or camera jumps. Zoom adjusts when the viewport changes. The controls explain the fixed face directions and the outside-looking-in meaning of clockwise.
 
 Box geometry is centered on each mesh's local origin, then positioned and oriented using its pose matrix. All faces are present; a depth buffer hides the surfaces behind other pieces. Edge outlines visualize divisions without shrinking the pieces or introducing artificial gaps. Ambient and directional lighting provide neutral shading, not photorealistic mirror reflections.
 
-The scene uses on-demand rendering rather than a continuous animation loop. Geometry resources are memoized and disposed when replaced or unmounted. The view is fixed: no drag-to-rotate, move controls, or animation.
+The scene renders on demand, requesting successive frames only while a turn is active. A quarter-turn takes about 0.6 seconds and a half-turn 0.9 seconds, with smooth easing and amber highlighting. The discrete puzzle changes only after completion. New turns are blocked while one is running; no input queue is maintained. Reduced-motion preference skips interpolation. Geometry resources are memoized and disposed when replaced or unmounted. There is no drag-to-rotate camera control.
 
-WebGL 2 is required. If initialization fails, the scene is replaced by an English/Ukrainian message while measurements and language controls remain available. Reload after resolving the browser/GPU issue; automatic context-loss recovery is not implemented.
+WebGL 2 is required. Initialization failure or context loss shows a localized fallback and disables turns. An unfinished move is canceled without changing the last committed puzzle. Measurements and language controls remain available; reload is required to retry. Reloading resets the puzzle and language.
 
-Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 314 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
+See [the animated-turn guide](docs/animated-turns.md) for transaction flow, timing, safe framing, and verification. The measurements panel always describes the solved dimensions, not the current outer shape.
+
+Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 316 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
 
 ### Visual verification
 
 1. Run `npm run dev` and open the page.
-2. Confirm that the top and two sides form a single cube with four unequal regions per visible surface.
-3. Check that the dimensions panel reads 50 mm and 22/28, 20/30, 17/33 mm.
-4. Resize to desktop and mobile widths; the 3D scene should remain fully visible, with the details below it on narrow screens.
-5. Run `npm run build` followed by `npm run preview` to check the production build locally.
+2. Confirm the initial solved cube and the 50 mm, 22/28, 20/30, and 17/33 mm reference measurements.
+3. Select a direction/angle and press a face button. Four amber pieces should move; further turns are disabled until completion.
+4. Apply a move and its inverse, try a half-turn, and switch languages during movement. The animation must not restart or accept a second move.
+5. Resize to desktop and mobile widths; the puzzle should stay in frame, including its protruding pieces. On small screens an offscreen canvas is brought into view when requesting a turn.
+6. Run `npm run build` followed by `npm run preview` to check the production build locally.
 
 `src/rendering/pieceTransform.test.ts` checks actual Three.js box vertices and bounds against the puzzle model, including mixed poses, rotations around the split intersection, absence of scaling/reflection, and a one-millimeter dimension difference. Browser/WebGL checks are currently manual, not a committed end-to-end test suite.
 
@@ -133,13 +138,14 @@ The default is English. Language selection is not persisted or inferred from bro
 3. Inspect the document's language and title, and the scene's accessible name/description, in both languages.
 4. Check both languages at narrow widths; longer Ukrainian text should wrap without horizontal overflow.
 
-`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. Only `CubeScene` is mocked because jsdom cannot render WebGL; these tests do not claim to test GPU output. Geometry tests use real Three.js objects in Node. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
+`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. Only `CubeScene` is mocked because jsdom cannot render WebGL; these tests do not claim to test GPU output. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes and the exactly-once completion contract. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
 
 ## Documentation
 
 - [Product and MVP scope](docs/product.md)
 - [Incremental development roadmap](docs/roadmap.md)
 - [Discrete state and move rules](docs/moves.md)
+- [Animated manual turns](docs/animated-turns.md)
 - [Coding agent instructions](AGENTS.md)
 
 ## Technical direction

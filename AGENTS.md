@@ -39,6 +39,7 @@ Add meaningful tests alongside the relevant functionality:
 - a move followed by its inverse restores the state;
 - four quarter-turns restore the state;
 - turns preserve piece identities and local dimensions;
+- animation endpoints match exact move geometry, and duplicate/stale completion callbacks cannot commit twice;
 - applying a returned solution actually solves the input state;
 - language switching updates user-facing text without changing puzzle state or solution progress.
 

@@ -107,10 +107,12 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
   gap: 36px;
-  align-items: center;
+  align-items: start;
 }
 
 .puzzle-card {
+  position: sticky;
+  top: 24px;
   margin: 0;
   padding: 24px;
   border-radius: 20px;
@@ -165,6 +167,97 @@ figcaption {
 
 .details {
   padding: 12px 0;
+}
+
+.move-controls {
+  border-bottom: 1px solid #d9dfdd;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+}
+
+.move-controls fieldset {
+  min-width: 0;
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.move-controls legend {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.turn-options {
+  display: grid;
+  gap: 4px;
+}
+
+.turn-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.turn-options input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #344b43;
+}
+
+.face-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.face-buttons button {
+  min-height: 64px;
+  border: 1px solid #aebcb7;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  color: #344b43;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.face-buttons strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.face-buttons button:hover:not(:disabled) {
+  background: #e1e9e5;
+}
+
+.face-buttons button:disabled,
+.turn-options:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.face-buttons button:focus-visible,
+.turn-options input:focus-visible {
+  outline: 3px solid #49675f;
+  outline-offset: 3px;
+}
+
+.move-controls p {
+  color: #52616b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.details h3 {
+  margin: 24px 0 0;
+  font-size: 14px;
 }
 
 .eyebrow {
@@ -225,6 +318,7 @@ figcaption {
   }
 
   .puzzle-card {
+    position: static;
     padding: 20px;
   }
 }

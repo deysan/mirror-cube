@@ -1,6 +1,15 @@
 import { Matrix4, Vector3 } from "three";
-import type { Piece } from "../puzzle/model";
+import type { Piece, SolvedCube } from "../puzzle/model";
 import type { Orientation } from "../puzzle/state";
+
+/** Rotations about the pivot preserve this bound, including intermediate frames. */
+export function getPuzzleRadius(cube: SolvedCube): number {
+  return Math.hypot(
+    Math.max(cube.splits.x, cube.edgeLength - cube.splits.x),
+    Math.max(cube.splits.y, cube.edgeLength - cube.splits.y),
+    Math.max(cube.splits.z, cube.edgeLength - cube.splits.z),
+  );
+}
 
 /** Place a center-origin box using the piece's exact pose about the puzzle origin. */
 export function createPieceMatrix(piece: Piece, orientation: Orientation): Matrix4 {

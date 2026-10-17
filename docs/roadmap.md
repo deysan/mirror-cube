@@ -16,7 +16,7 @@ The TypeScript model and its geometry tests are committed and published. The def
 
 ## Completed stage: initial static view
 
-The initial React + Vite page used a fixed isometric SVG view derived from the model's dimensions. That stage is committed and published. Its solved-only renderer is replaced by the current Three.js stage.
+The initial React + Vite page used a fixed isometric SVG view derived from the model's dimensions. That stage is committed and published. Its solved-only renderer was replaced in the Three.js stage.
 
 ## Completed stage: multilingual interface
 
@@ -28,22 +28,27 @@ Limitations: English is the initial language; selection is not persisted across 
 
 Separate discrete state and complete face turns are implemented and committed locally. See the [move-model guide](moves.md) for coordinate conventions and API details. Tests verify known directions, inverses, repeated turns, layer selection, and exact geometric invariants from solved and mixed states.
 
-## Current stage: static Three.js scene
+## Completed stage: static Three.js scene
 
-The SVG renderer is replaced by Three.js with React Three Fiber. Eight boxes use the model's exact dimensions and pose matrices. The page still displays the solved state; controls and animation are not added yet.
+The SVG renderer was replaced by Three.js with React Three Fiber and committed locally. Eight boxes use exact model dimensions and pose matrices, with depth testing, bilingual accessibility descriptions, and an initialization-failure fallback.
+
+## Current stage: animated manual turns
+
+Six face buttons and three angle/direction choices control a highlighted moving layer. A separate session reducer guards starts and commits the exact move only after animation completion. See the [animated-turn guide](animated-turns.md).
 
 Completion criteria:
 
-- real box dimensions and transformed centers match the puzzle model;
-- all eight piece poses are passed from application state, not inferred from the camera or slot centers;
-- depth testing hides rear and internal surfaces;
-- resizing keeps the solved cube in view;
-- language switching preserves the model/state, canvas, and geometry;
-- a localized fallback handles initialization failure without breaking the rest of the page;
-- geometry tests, UI tests, type checking, and the production build pass;
-- the scene is visually checked in a WebGL-capable browser.
+- all 18 face/angle combinations animate around the correct pivot and direction;
+- exactly four moving pieces are highlighted and the other four remain still;
+- controls reject overlapping turns and are disabled before scene readiness;
+- duplicate or stale completion callbacks cannot apply a move twice;
+- animation endpoints agree with the discrete model;
+- the camera contains protruding pieces throughout movement;
+- changing language does not reset or restart a pending turn;
+- reduced motion and scene/context failure are handled without a stuck pending move;
+- automated tests, type checking, production build, and browser checks pass.
 
-Limitations: fixed camera framed for the solved cube, no animated controls, no photorealistic reflections, no automatic context-loss recovery. The larger graphics bundle triggers Vite's size warning; it is not suppressed.
+Limitations: fixed camera, no history/undo, no automatic scrambling, no solved-state detector, no solver or playback. Reload resets the puzzle. The larger graphics bundle still triggers Vite's size warning.
 
 ## Agreed rendering direction and deployment order
 
@@ -51,7 +56,7 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is animated manual turns. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is move history and animated undo. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Stage sequence
 
