@@ -135,28 +135,24 @@ h2 {
 }
 
 .cube-view {
-  display: block;
   width: 100%;
-  height: auto;
+  aspect-ratio: 0.89;
   margin: 12px 0;
 }
 
-.cube-face {
-  stroke: #263541;
-  stroke-width: 1.5px;
-  stroke-linejoin: round;
+.cube-scene {
+  width: 100%;
+  height: 100%;
 }
 
-.cube-face--top {
-  fill: #eef3f6;
-}
-
-.cube-face--right {
-  fill: #a2b3c1;
-}
-
-.cube-face--front {
-  fill: #ced9e1;
+.cube-fallback {
+  display: grid;
+  align-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  line-height: 1.7;
 }
 
 figcaption {

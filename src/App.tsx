@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { CubeView } from "./components/CubeView";
 import { LANGUAGES, messages, type Language } from "./i18n/messages";
 import { createSolvedCube } from "./puzzle/model";
+import { createSolvedState } from "./puzzle/state";
 
 const axes = ["x", "y", "z"] as const;
 
 export function App() {
   const [cube] = useState(createSolvedCube);
+  const [puzzleState] = useState(() => createSolvedState(cube));
   const [language, setLanguage] = useState<Language>("en");
   const text = messages[language];
 
@@ -46,7 +48,13 @@ export function App() {
             <span className="status">{text.solvedState}</span>
             <span>{text.viewLabel}</span>
           </div>
-          <CubeView cube={cube} title={text.cubeTitle} description={text.cubeDescription} />
+          <CubeView
+            cube={cube}
+            state={puzzleState}
+            title={text.cubeTitle}
+            description={text.cubeDescription}
+            unavailableMessage={text.sceneUnavailable}
+          />
           <figcaption>{text.caption}</figcaption>
         </figure>
 

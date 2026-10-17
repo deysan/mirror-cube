@@ -24,6 +24,7 @@ interface Messages {
   readonly stageNote: string;
   readonly cubeTitle: string;
   readonly cubeDescription: string;
+  readonly sceneUnavailable: string;
 }
 
 export const messages = {
@@ -45,7 +46,8 @@ export const messages = {
     millimeters: "mm",
     stageNote: "This first view shows the solved geometry. Turns and step-by-step instructions are not available yet.",
     cubeTitle: "Solved 2×2 Mirror Cube",
-    cubeDescription: "An isometric view of the top and two sides. Unequal divisions show the different piece dimensions. The puzzle is static and cannot be turned yet.",
+    cubeDescription: "A 3D isometric view of the top and two sides. Unequal divisions show the different piece dimensions. The puzzle is static and cannot be turned yet.",
+    sceneUnavailable: "The 3D view could not start. Check that WebGL 2 is available in your browser and reload the page. The cube measurements remain available below.",
   },
   uk: {
     documentTitle: "MirrorCube — дзеркальний кубик 2×2",
@@ -65,6 +67,7 @@ export const messages = {
     millimeters: "мм",
     stageNote: "Зараз показано геометрію складеного кубика. Повороти та покрокові інструкції ще недоступні.",
     cubeTitle: "Складений дзеркальний кубик 2×2",
-    cubeDescription: "Ізометричний вигляд верхньої та двох бічних поверхонь. Нерівні поділи показують різні розміри деталей. Кубик нерухомий: повороти ще недоступні.",
+    cubeDescription: "Об’ємний ізометричний вигляд верхньої та двох бічних поверхонь. Нерівні поділи показують різні розміри деталей. Кубик нерухомий: повороти ще недоступні.",
+    sceneUnavailable: "Не вдалося запустити об’ємне відображення. Перевірте підтримку WebGL 2 у браузері та перезавантажте сторінку. Розміри кубика залишаються доступними нижче.",
   },
 } as const satisfies Record<Language, Messages>;

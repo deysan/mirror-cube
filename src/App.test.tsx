@@ -3,15 +3,18 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { CubeScene } from "./components/CubeScene";
 import { messages, type Language } from "./i18n/messages";
 import { createSolvedCube } from "./puzzle/model";
 
-// Keep the real model implementation, but observe whether switching recreates it.
 vi.mock("./puzzle/model", { spy: true });
+// jsdom has no WebGL. Test UI/state wiring here, transforms in Node, and pixels in a browser.
+vi.mock("./components/CubeScene", () => ({ CubeScene: vi.fn() }));
 
 beforeEach(() => {
   document.documentElement.lang = "en";
   document.head.innerHTML = '<title>MirrorCube</title><meta name="description" content="">';
+  vi.mocked(CubeScene).mockImplementation(() => <canvas data-testid="scene-canvas" />);
 });
 
 afterEach(() => {
@@ -41,8 +44,8 @@ function expectLanguage(language: Language) {
     expect(screen.getByText(`${dimensions} ${text.millimeters}`)).toBeDefined();
   }
 
-  const svg = screen.getByRole("img", { name: text.cubeTitle });
-  const descriptionId = svg.getAttribute("aria-describedby")!;
+  const view = screen.getByRole("img", { name: text.cubeTitle });
+  const descriptionId = view.getAttribute("aria-describedby")!;
   expect(document.getElementById(descriptionId)?.textContent).toBe(text.cubeDescription);
   expect(screen.getByRole("button", { name: "English" }).getAttribute("aria-pressed"))
     .toBe(String(language === "en"));
@@ -59,7 +62,7 @@ describe("interface language", () => {
     expect(screen.getByRole("button", { name: "Українська" }).getAttribute("lang")).toBe("uk");
   });
 
-  it("switches all page text, document metadata, units, and SVG descriptions to Ukrainian", () => {
+  it("switches all page text, document metadata, units, and scene descriptions to Ukrainian", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Українська" }));
 
@@ -69,30 +72,26 @@ describe("interface language", () => {
     expect(screen.queryByText(messages.en.stageNote)).toBeNull();
   });
 
-  it("switches back without recreating the model, remounting the SVG, or changing geometry", () => {
+  it("switches back without recreating definitions/state or remounting the scene", () => {
     render(<App />);
     const factory = vi.mocked(createSolvedCube);
     const creationCount = factory.mock.calls.length;
-    const cube = factory.mock.results[0]?.value;
-    expect(cube).toBeDefined();
-    const originalState = JSON.stringify(cube);
-    const originalSvg = screen.getByRole("img");
-    const originalPolygons = [...originalSvg.querySelectorAll("polygon")];
-    const originalPoints = originalPolygons.map((polygon) => polygon.getAttribute("points"));
-    const originalViewBox = originalSvg.getAttribute("viewBox");
+    const initialProps = vi.mocked(CubeScene).mock.calls.at(-1)![0];
+    const originalData = JSON.stringify(initialProps);
+    const originalView = screen.getByRole("img");
+    const originalCanvas = screen.getByTestId("scene-canvas");
+    expect(initialProps.cube.pieces).toHaveLength(8);
+    expect(initialProps.state.corners).toHaveLength(8);
 
     for (const name of ["Українська", "English"]) {
       fireEvent.click(screen.getByRole("button", { name }));
-      const svg = screen.getByRole("img");
-      const polygons = [...svg.querySelectorAll("polygon")];
-
-      expect(svg).toBe(originalSvg);
-      expect(svg.getAttribute("viewBox")).toBe(originalViewBox);
-      expect(polygons).toHaveLength(12);
-      polygons.forEach((polygon, index) => expect(polygon).toBe(originalPolygons[index]));
-      expect(polygons.map((polygon) => polygon.getAttribute("points"))).toEqual(originalPoints);
+      const props = vi.mocked(CubeScene).mock.calls.at(-1)![0];
+      expect(screen.getByRole("img")).toBe(originalView);
+      expect(screen.getByTestId("scene-canvas")).toBe(originalCanvas);
+      expect(props.cube).toBe(initialProps.cube);
+      expect(props.state).toBe(initialProps.state);
+      expect(JSON.stringify(props)).toBe(originalData);
       expect(factory.mock.calls).toHaveLength(creationCount);
-      expect(JSON.stringify(cube)).toBe(originalState);
     }
 
     expectLanguage("en");
@@ -105,5 +104,22 @@ describe("interface language", () => {
     fireEvent.click(ukrainian);
 
     expectLanguage("uk");
+  });
+
+  it("keeps measurements and language switching available if the 3D scene fails", () => {
+    vi.mocked(CubeScene).mockImplementation(() => { throw new Error("WebGL unavailable"); });
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      render(<App />);
+      expect(screen.getByRole("status").textContent).toBe(messages.en.sceneUnavailable);
+      expect(screen.queryByRole("img")).toBeNull();
+      expect(screen.getByText("50 mm")).toBeDefined();
+
+      fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+      expect(screen.getByRole("status").textContent).toBe(messages.uk.sceneUnavailable);
+      expect(screen.getByText("50 мм")).toBeDefined();
+    } finally {
+      errorLog.mockRestore();
+    }
   });
 });

@@ -103,6 +103,6 @@ const restored = applyMove(turned, inverseMove(move));
 
 ## Rendering and animation boundary
 
-A future Three.js/React Three Fiber scene will render this data, not own the puzzle rules. Intermediate animation angles belong only to the visual layer. The exact next discrete state will be committed after a completed animation; it must not be reconstructed from floating-point mesh transforms.
+The Three.js/React Three Fiber scene renders this data but does not own the puzzle rules. `src/rendering/pieceTransform.ts` converts each orientation and solved center into a mesh matrix. The mathematical modules do not import Three.js.
 
-The static 3D renderer and animated manual controls remain separate stages. No Three.js dependency or animation code is added with these move rules.
+The static scene and animated manual controls are separate stages; animation is not implemented yet. Intermediate animation angles will belong only to the visual layer. The exact next discrete state will be committed after a completed animation; it must not be reconstructed from floating-point mesh transforms.

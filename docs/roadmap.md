@@ -14,9 +14,9 @@ English documentation and collaboration rules are available in the public reposi
 
 The TypeScript model and its geometry tests are committed and published. The default parameters use the owner's confirmed Cayro cube dimensions: a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z respectively.
 
-## Completed stage: static view
+## Completed stage: initial static view
 
-The React + Vite page and fixed isometric SVG view are committed and published. Rendering uses the model's dimensions and solved positions, with a separate pure projection module. The view excludes internal and rear surfaces and works at desktop and mobile widths.
+The initial React + Vite page used a fixed isometric SVG view derived from the model's dimensions. That stage is committed and published. Its solved-only renderer is replaced by the current Three.js stage.
 
 ## Completed stage: multilingual interface
 
@@ -24,28 +24,34 @@ English and Ukrainian dictionaries and a language switcher are committed and pub
 
 Limitations: English is the initial language; selection is not persisted across reloads. Solution-progress preservation cannot be tested until solutions and playback exist.
 
-## Current stage: exact move rules
+## Completed stage: exact move rules
 
-Separate discrete state and complete face turns are implemented without changing the UI. See the [move-model guide](moves.md) for coordinate conventions and API details.
+Separate discrete state and complete face turns are implemented and committed locally. See the [move-model guide](moves.md) for coordinate conventions and API details. Tests verify known directions, inverses, repeated turns, layer selection, and exact geometric invariants from solved and mixed states.
+
+## Current stage: static Three.js scene
+
+The SVG renderer is replaced by Three.js with React Three Fiber. Eight boxes use the model's exact dimensions and pose matrices. The page still displays the solved state; controls and animation are not added yet.
 
 Completion criteria:
 
-- six faces support clockwise/counterclockwise quarter-turns and half-turns;
-- moves update the current slots and exact orientations of four pieces;
-- inverse moves and four quarter-turns restore the complete state;
-- piece identities, individual dimensions, and input data are preserved;
-- tests verify known directions and invariants from both solved and mixed states;
-- existing UI tests, type checking, and the production build still pass.
+- real box dimensions and transformed centers match the puzzle model;
+- all eight piece poses are passed from application state, not inferred from the camera or slot centers;
+- depth testing hides rear and internal surfaces;
+- resizing keeps the solved cube in view;
+- language switching preserves the model/state, canvas, and geometry;
+- a localized fallback handles initialization failure without breaking the rest of the page;
+- geometry tests, UI tests, type checking, and the production build pass;
+- the scene is visually checked in a WebGL-capable browser.
 
-Limitations: the page is still a static SVG view. No Three.js dependencies, animated controls, solved-state detector, or solution search are included in this stage.
+Limitations: fixed camera framed for the solved cube, no animated controls, no photorealistic reflections, no automatic context-loss recovery. The larger graphics bundle triggers Vite's size warning; it is not suppressed.
 
 ## Agreed rendering direction and deployment order
 
-The owner approved Three.js with React Three Fiber for the next rendering stage. Correct depth and occlusion during shape-changing turns justify replacing the solved-only SVG renderer. Animation timing does not need an additional library at this point.
+The current renderer uses Three.js with React Three Fiber. Correct depth and occlusion during shape-changing turns justify replacing the solved-only SVG renderer. Animation timing does not need an additional library at this point.
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is the static Three.js scene. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is animated manual turns. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Stage sequence
 
@@ -83,4 +89,4 @@ Completion criteria:
 - invalid parameters are rejected;
 - tests and type checking pass.
 
-Original stage boundaries: solved geometry only, without turns, solved-state detection for arbitrary states, gaps, bevels, or an internal mechanism. Turns are added in the current separate stage.
+Original stage boundaries: solved geometry only, without turns, solved-state detection for arbitrary states, gaps, bevels, or an internal mechanism. Turns were added in a separate stage.

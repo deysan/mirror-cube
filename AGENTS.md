@@ -21,11 +21,11 @@ Before working, read [README.md](README.md), the [product description](docs/prod
 
 ## Technical direction
 
-- Use React, TypeScript, and Vite. The current view uses SVG; migration to Three.js with React Three Fiber is approved for a separate rendering stage.
-- The reason for this migration is correct depth/occlusion handling during shape-changing turns, not the animation timing itself. Do not install those dependencies before that stage.
+- Use React, TypeScript, and Vite, with Three.js and React Three Fiber for rendering.
+- Three.js replaces the initial solved-only SVG renderer to handle depth and occlusion during shape-changing turns. No separate animation-timing library is currently needed.
 - Before adding any further graphics or animation tool, explain the specific problem it solves.
 - Separate puzzle state/move rules, solution search, geometry/projection/animation, and UI.
-- Keep the mathematical model and solution search independent of React, SVG, and the selected language.
+- Keep the mathematical model and solution search independent of React, Three.js, and the selected language. Convert domain data to Three.js objects only in the rendering layer.
 - Introduce abstractions and dependencies only when there is a concrete need.
 - Preserve each piece's exact local dimensions along all three axes during turns. Do not equate similar dimensions or determine solved status from an approximate silhouette.
 - Implement English and Ukrainian user-facing text as part of the localization and subsequent UI stages. Language switching must not reset puzzle state or solution progress.

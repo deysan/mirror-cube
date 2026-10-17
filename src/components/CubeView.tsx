@@ -1,51 +1,42 @@
-import { useId } from "react";
+import { Component, useId, type ReactNode } from "react";
 import type { SolvedCube } from "../puzzle/model";
-import { getVisibleSolvedFaces, projectIsometric } from "../rendering/solvedView";
+import type { PuzzleState } from "../puzzle/state";
+import { CubeScene } from "./CubeScene";
 
 interface CubeViewProps {
   readonly cube: SolvedCube;
+  readonly state: PuzzleState;
   readonly title: string;
   readonly description: string;
+  readonly unavailableMessage: string;
 }
 
-export function CubeView({ cube, title, description }: CubeViewProps) {
-  const titleId = useId();
+class SceneBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+export function CubeView({ cube, state, title, description, unavailableMessage }: CubeViewProps) {
   const descriptionId = useId();
-  const faces = getVisibleSolvedFaces(cube).map((face) => ({
-    ...face,
-    points: face.vertices.map(projectIsometric),
-  }));
-  const points = faces.flatMap((face) => face.points);
-  const minX = Math.min(...points.map((point) => point.x));
-  const maxX = Math.max(...points.map((point) => point.x));
-  const minY = Math.min(...points.map((point) => point.y));
-  const maxY = Math.max(...points.map((point) => point.y));
-  const padding = cube.edgeLength * 0.15;
-  const viewBox = [
-    minX - padding,
-    minY - padding,
-    maxX - minX + padding * 2,
-    maxY - minY + padding * 2,
-  ].join(" ");
 
   return (
-    <svg
-      className="cube-view"
-      viewBox={viewBox}
-      role="img"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-    >
-      <title id={titleId}>{title}</title>
-      <desc id={descriptionId}>{description}</desc>
-      {faces.map((face) => (
-        <polygon
-          key={`${face.pieceId}:${face.side}`}
-          className={`cube-face cube-face--${face.side}`}
-          points={face.points.map(({ x, y }) => `${x},${y}`).join(" ")}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-    </svg>
+    <div className="cube-view">
+      <span id={descriptionId} hidden>{description}</span>
+      <SceneBoundary fallback={<p className="cube-fallback" role="status">{unavailableMessage}</p>}>
+        <div className="cube-scene" role="img" aria-label={title} aria-describedby={descriptionId}>
+          <CubeScene cube={cube} state={state} />
+        </div>
+      </SceneBoundary>
+    </div>
   );
 }

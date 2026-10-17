@@ -6,9 +6,9 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 ## Current status
 
-The solved-state puzzle model, discrete move rules, a static React/SVG view, and an English/Ukrainian language switcher are implemented. Move rules are tested separately and are not connected to the UI yet: the page still shows the solved cube from a fixed isometric camera.
+The solved-state puzzle model, discrete move rules, a static Three.js/React Three Fiber scene, and an English/Ukrainian language switcher are implemented. The scene reads piece definitions and their discrete poses. Move controls are not connected to the UI yet: the page shows the solved cube from a fixed isometric camera.
 
-There are no animated turns, solution search, or public deployment yet. Migration to Three.js with React Three Fiber is approved for the next rendering stage. Netlify deployment is deferred until solving and animated step-by-step playback are ready.
+There are no animated turns, solution search, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step playback are ready.
 
 ## Local setup and checks
 
@@ -84,40 +84,44 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 
 Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry needed for future animation.
 
-## Static SVG view
+## Static 3D view
 
-- `src/rendering/solvedView.ts` selects the visible exterior polygons from the model and projects their 3D vertices into 2D. It has no React or DOM dependencies.
-- `src/components/CubeView.tsx` draws those polygons in an accessible SVG and fits the `viewBox` to their projected bounds.
-- `src/App.tsx` owns the solved model as state initialized on mount and uses it for both the SVG and displayed measurements. Language is separate state.
-- `src/styles.css` provides a responsive layout and three neutral shades to distinguish face directions.
+- `src/rendering/pieceTransform.ts` converts a piece's definition and orientation into a Three.js matrix. It rotates the actual solved center around the split intersection, never using slot signs as distances.
+- `src/components/CubeScene.tsx` renders eight boxes with exact local dimensions and edge outlines, using React Three Fiber. Three.js handles depth testing and hidden surfaces.
+- `src/components/CubeView.tsx` provides the scene's accessible name/description and a localized fallback if the 3D scene cannot initialize.
+- `src/App.tsx` owns the piece definitions and discrete puzzle state, independently of language. These are passed into the view, not reconstructed from meshes.
 
-The camera looks from positive X, Y, and Z. Positive Y projects upward, positive X down-right, and positive Z down-left. The three axes are equally foreshortened and separated by 120 degrees. These viewing directions agree with the move model's world axes, but the page does not show move notation or instructions for holding a physical cube yet.
+The fixed orthographic camera looks from positive X, Y, and Z toward the outer cube's geometric center. Positive Y projects upward, positive X down-right, and positive Z down-left. The camera adjusts its zoom when the viewport changes; the puzzle's origin remains at the split intersection. Current framing is designed for the solved cube and must be revisited for animated, shape-changing turns.
 
-Only the positive outer surfaces are visible: four polygons per surface, twelve in total. Their projected interiors do not overlap, so this solved-only view requires neither a depth buffer nor depth sorting. Internal faces and the three rear outer surfaces are excluded. This is deliberately not a renderer for arbitrary turns; visibility and occlusion must be revisited when implementing moves and animations.
+Box geometry is centered on each mesh's local origin, then positioned and oriented using its pose matrix. All faces are present; a depth buffer hides the surfaces behind other pieces. Edge outlines visualize divisions without shrinking the pieces or introducing artificial gaps. Ambient and directional lighting provide neutral shading, not photorealistic mirror reflections.
 
-Polygon borders visualize divisions without changing piece dimensions. Shading is illustrative, not a simulation of reflective materials. The view is fixed: no drag-to-rotate, turns, or animation.
+The scene uses on-demand rendering rather than a continuous animation loop. Geometry resources are memoized and disposed when replaced or unmounted. The view is fixed: no drag-to-rotate, move controls, or animation.
+
+WebGL 2 is required. If initialization fails, the scene is replaced by an English/Ukrainian message while measurements and language controls remain available. Reload after resolving the browser/GPU issue; automatic context-loss recovery is not implemented.
+
+Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 314 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
 
 ### Visual verification
 
 1. Run `npm run dev` and open the page.
 2. Confirm that the top and two sides form a single cube with four unequal regions per visible surface.
 3. Check that the dimensions panel reads 50 mm and 22/28, 20/30, 17/33 mm.
-4. Resize to desktop and mobile widths; the SVG should remain fully visible, with the details below it on narrow screens.
+4. Resize to desktop and mobile widths; the 3D scene should remain fully visible, with the details below it on narrow screens.
 5. Run `npm run build` followed by `npm run preview` to check the production build locally.
 
-Projection tests verify axis directions, equal foreshortening, visible outer faces, their corner coordinates, projected areas, and that deriving the view does not modify the puzzle model. Browser layout checks are currently manual, not a committed end-to-end test suite.
+`src/rendering/pieceTransform.test.ts` checks actual Three.js box vertices and bounds against the puzzle model, including mixed poses, rotations around the split intersection, absence of scaling/reflection, and a one-millimeter dimension difference. Browser/WebGL checks are currently manual, not a committed end-to-end test suite.
 
 ## Interface languages
 
 `src/i18n/messages.ts` contains typed English (`en`) and Ukrainian (`uk`) dictionaries. A shared message shape requires both languages to provide every key, including full axis labels rather than language-dependent sentence fragments. Native language names are always shown on the switcher.
 
-`src/App.tsx` selects a dictionary using local language state and passes the localized SVG title and description to `CubeView`. No localization context or runtime library is needed for this single-page interface. Puzzle logic and projection do not depend on the language.
+`src/App.tsx` selects a dictionary using local language state and passes the localized scene title, description, and failure message to `CubeView`. No localization context or runtime library is needed for this single-page interface. Puzzle logic and mesh transforms do not depend on the language.
 
 Switching updates:
 
 - all page copy, measurement labels, and unit abbreviations;
 - the language switcher's accessible label and pressed state;
-- SVG accessible title and description;
+- scene accessible title, description, and initialization-failure message;
 - the document's `lang`, title, and description meta tag.
 
 The default is English. Language selection is not persisted or inferred from browser settings yet; a full page reload returns to English. The static HTML also starts in English, and React updates metadata on language changes. This is not server-rendered multilingual SEO.
@@ -126,10 +130,10 @@ The default is English. Language selection is not persisted or inferred from bro
 
 1. Switch from English to Ukrainian and back. Text and units should change, while the cube and its divisions remain unchanged.
 2. Use Tab to focus a language button and Enter or Space to activate it. The active language has a visible state and `aria-pressed="true"`.
-3. Inspect the document's language and title, and the SVG title/description, in both languages.
+3. Inspect the document's language and title, and the scene's accessible name/description, in both languages.
 4. Check both languages at narrow widths; longer Ukrainian text should wrap without horizontal overflow.
 
-`src/App.test.tsx` uses React Testing Library with jsdom to verify actual button clicks, localized text and metadata, model preservation, and unchanged SVG nodes and coordinates. Other tests retain Vitest's default Node environment. Dictionary tests also check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
+`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. Only `CubeScene` is mocked because jsdom cannot render WebGL; these tests do not claim to test GPU output. Geometry tests use real Three.js objects in Node. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
 
 ## Documentation
 
@@ -142,7 +146,7 @@ The default is English. Language selection is not persisted or inferred from bro
 
 - React and TypeScript for the interface and typed application logic.
 - Vite for local development and production builds.
-- SVG for the current static view; Three.js with React Three Fiber is the approved next renderer for correct depth and occlusion during shape-changing turns. Those dependencies are not installed yet.
+- Three.js and React Three Fiber for 3D rendering with correct depth and occlusion. No Drei, external model/texture assets, or animation library is needed at this stage.
 - Vitest for automated checks of the puzzle model.
 
 Puzzle state and move rules, solution search, geometry/projection/animation, and UI should remain separate responsibilities. Add modules and dependencies only when needed for the current stage.
