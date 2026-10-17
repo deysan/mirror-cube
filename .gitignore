@@ -1,0 +1,15 @@
+# Dependencies and generated files
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local environment and Netlify state
+.env
+.env.*
+!.env.example
+.netlify/
+
+# Local logs and OS files
+*.log
+.DS_Store

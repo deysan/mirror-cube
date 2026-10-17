@@ -1,0 +1,52 @@
+# Coding agent instructions
+
+## Context
+
+MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. The application will provide its interface and solution instructions in English and Ukrainian. The owner is a frontend developer experienced in React and TypeScript who wants to review changes, understand the architecture, and control decisions.
+
+Before working, read [README.md](README.md), the [product description](docs/product.md), and the [roadmap](docs/roadmap.md). Do not treat planned features as already implemented.
+
+## Collaboration
+
+- Explain decisions to the owner in Ukrainian, at a developer-friendly level.
+- Write all repository documentation in English. Ukrainian application translations are expected when localization is implemented.
+- Describe the product as a guide to solving a 2×2 Mirror Cube; do not add experimental or commercialization framing.
+- Work in small, complete stages: one clear behavior change or a focused infrastructure task at a time.
+- Before each stage, briefly explain what will be implemented, which parts will change, and why this approach was chosen.
+- Do not start an unapproved stage. The roadmap is not permission to implement every item.
+- After each stage, summarize the changes, key files, verification steps, and known limitations. Stop until the owner asks to continue.
+- Do not commit or push without the owner's explicit permission. Approval to edit files is not approval to publish them.
+- Do not add out-of-scope features or empty modules for future stages.
+- Update documentation when implementation changes documented assumptions or commands.
+
+## Technical direction
+
+- Start with React, TypeScript, Vite, and SVG with projected 3D coordinates.
+- Before choosing a more complex graphics tool, explain the specific problem it solves.
+- Separate puzzle state/move rules, solution search, geometry/projection/animation, and UI.
+- Keep the mathematical model and solution search independent of React, SVG, and the selected language.
+- Introduce abstractions and dependencies only when there is a concrete need.
+- Preserve each piece's exact local dimensions along all three axes during turns. Do not equate similar dimensions or determine solved status from an approximate silhouette.
+- Implement English and Ukrainian user-facing text as part of the localization and subsequent UI stages. Language switching must not reset puzzle state or solution progress.
+- Choose the localization approach when it is needed; do not scaffold unused translation modules in advance.
+
+## Verification
+
+Add meaningful tests alongside the relevant functionality:
+
+- solved-state geometry is correct;
+- a move followed by its inverse restores the state;
+- four quarter-turns restore the state;
+- turns preserve piece identities and local dimensions;
+- applying a returned solution actually solves the input state;
+- language switching updates user-facing text without changing puzzle state or solution progress.
+
+Run the checks available for the current stage. Report what was verified and what could not be verified; never claim that unrun tests passed.
+
+## GitHub and deployment
+
+- The repository is public: never commit secrets, tokens, private keys, or local environment files.
+- Target Netlify's free plan with a `*.netlify.app` address.
+- Do not enable paid options, services, or a custom domain without separate approval. Check current free-plan terms before deployment.
+- Do not add deployment configuration before a buildable application exists.
+- The owner chooses the license; do not add one independently.
