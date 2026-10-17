@@ -6,18 +6,17 @@ Each stage delivers one small, complete behavior change or a focused infrastruct
 
 The roadmap can change based on earlier results. It is not permission to start the next stage automatically. Commits and pushes require explicit permission from the owner.
 
-## Current stage: documentation and GitHub
+## Completed foundation: documentation and GitHub
 
-Scope:
+English documentation and collaboration rules are available in the public repository `deysan/mirror-cube`, with `main` as the default branch. Free Netlify hosting is the deployment target but has not been connected.
 
-- describe the product, MVP boundaries, language support, and technical direction;
-- record the collaboration rules;
-- establish the public GitHub repository `deysan/mirror-cube`;
-- document free Netlify hosting as the deployment target without connecting it yet.
+## Current stage: solved puzzle model
 
-Completion criteria: English documentation is available on GitHub, the default branch is `main`, and no application code or dependencies have been added.
+The TypeScript model and its geometry tests are implemented locally for review. The default parameters use the owner's confirmed Cayro cube dimensions: a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z respectively. No UI or move logic has been added.
 
-## Proposed next stages
+The next proposed stage is the static view. Do not begin it until the owner approves.
+
+## Stage sequence
 
 | Stage | Result | Main check |
 | --- | --- | --- |
@@ -37,13 +36,11 @@ Once localization is introduced, each subsequent UI stage includes English and U
 
 Reversing move history must not be presented as a general solution-search algorithm. Choose the search algorithm separately once the move model is implemented and verified.
 
-## Next proposed stage in detail: the model
+## Current stage in detail: the model
 
-This proposal requires approval after the documentation stage.
+A pure TypeScript model of a solved 2×2 Mirror Cube without UI or turns. The parameters define the cube's edge length and three off-center split planes, one per axis, using integer millimeters.
 
-Build a pure TypeScript model of a solved 2×2 Mirror Cube without UI or turns. Define the cube's edge length and three off-center split planes, one per axis. Use integer dimensions in an explicitly documented measurement unit for the initial parameter set.
-
-Expected files: `src/puzzle/model.ts`, `src/puzzle/model.test.ts`, minimal TypeScript and Vitest configuration, and an updated README with verification commands.
+Files: `src/puzzle/model.ts`, `src/puzzle/model.test.ts`, minimal TypeScript and Vitest configuration, the npm lockfile, and an updated README with verification commands.
 
 Completion criteria:
 

@@ -49,7 +49,9 @@ Similar dimensions must not be treated as equal: differences of a few millimeter
 
 Puzzle state is the source of truth. Projection and intermediate animation frames do not determine move legality or solved status.
 
-The initial geometry may be idealized as rectangular pieces without bevels, gaps, or an internal mechanism. Document the exact parameters and measurement units during implementation. Do not claim that a parameter set matches a particular physical puzzle without measurements.
+The implemented solved-state geometry uses rectangular pieces without bevels, gaps, or an internal mechanism. Its default parameters match the owner's confirmed dimensions for their [Cayro 2×2 Mirror Cube](https://bi.ua/ukr/product/zerkalnyy-kubik-rubika-cayro-2h2-8380.html): a 50 mm edge, with X layers of 22/28 mm, Y layers of 20/30 mm, and Z layers of 17/33 mm. These dimensions were confirmed by the owner, not independently verified against a manufacturer specification.
+
+All current model lengths use whole millimeters, with no rounding or approximate equality. Fractional inputs are rejected; support for finer measurements will require an explicitly finer unit. See the [model documentation](../README.md#solved-puzzle-model) for coordinates, piece dimensions, and validation rules.
 
 ## First-version boundaries
 
