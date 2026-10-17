@@ -10,11 +10,23 @@ The roadmap can change based on earlier results. It is not permission to start t
 
 English documentation and collaboration rules are available in the public repository `deysan/mirror-cube`, with `main` as the default branch. Free Netlify hosting is the deployment target but has not been connected.
 
-## Current stage: solved puzzle model
+## Completed stage: solved puzzle model
 
-The TypeScript model and its geometry tests are implemented locally for review. The default parameters use the owner's confirmed Cayro cube dimensions: a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z respectively. No UI or move logic has been added.
+The TypeScript model and its geometry tests are committed and published. The default parameters use the owner's confirmed Cayro cube dimensions: a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z respectively.
 
-The next proposed stage is the static view. Do not begin it until the owner approves.
+## Current stage: static view
+
+The React + Vite page and fixed isometric SVG view are implemented locally for review. Rendering uses the model's dimensions and solved positions, with a separate pure projection module. The initial interface is in English. No turns, animation, localization switching, or deployment have been added.
+
+Completion criteria:
+
+- the solved cube displays its top and two sides, with unequal divisions derived from the model;
+- internal and rear faces are not drawn;
+- displayed measurements come from the same model;
+- the page works at desktop and mobile widths;
+- projection tests, type checking, and the production build pass.
+
+The next proposed stage is the multilingual interface. Do not begin it until the owner approves.
 
 ## Stage sequence
 
@@ -36,7 +48,7 @@ Once localization is introduced, each subsequent UI stage includes English and U
 
 Reversing move history must not be presented as a general solution-search algorithm. Choose the search algorithm separately once the move model is implemented and verified.
 
-## Current stage in detail: the model
+## Completed model stage: scope and checks
 
 A pure TypeScript model of a solved 2×2 Mirror Cube without UI or turns. The parameters define the cube's edge length and three off-center split planes, one per axis, using integer millimeters.
 

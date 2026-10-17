@@ -6,7 +6,7 @@ The application will support **English and Ukrainian**, including the interface 
 
 ## Current status
 
-The solved-state puzzle model is implemented in TypeScript with geometry tests. There is no browser interface, move logic, solution search, or deployment yet. English/Ukrainian support is planned, not implemented.
+The solved-state puzzle model and a static React/SVG view are implemented, with tests for geometry and projection. The page shows the owner's cube dimensions and its unequal divisions from a fixed isometric camera. There is no move logic, solution search, or deployment yet. The initial interface is in English; English/Ukrainian switching is planned for the next stage.
 
 ## Local setup and checks
 
@@ -14,11 +14,19 @@ Use Node.js 24 (recommended) and npm. The supported Node.js versions are listed 
 
 ```sh
 npm ci
-npm test
-npm run typecheck
+npm run dev
 ```
 
-Use `npm run test:watch` to rerun tests while editing. There are no `dev` or `build` commands yet; those will be added with the first Vite page.
+Open the local URL printed by Vite (normally `http://localhost:5173`).
+
+```sh
+npm test
+npm run typecheck
+npm run build
+npm run preview
+```
+
+`npm run build` checks types and writes the production site to `dist`. `npm run preview` serves that build locally; it is not a production hosting service. Use `npm run test:watch` to rerun tests while editing.
 
 ## Solved puzzle model
 
@@ -66,6 +74,29 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 
 `src/puzzle/model.test.ts` checks piece identities, exact dimensions, containment, pairwise non-overlap, total volume, one-millimeter differences, input independence, and parameter validation. Containment, non-overlap, and equal total volume together verify that the pieces fill the cube without gaps.
 
+## Static SVG view
+
+- `src/rendering/solvedView.ts` selects the visible exterior polygons from the model and projects their 3D vertices into 2D. It has no React or DOM dependencies.
+- `src/components/CubeView.tsx` draws those polygons in an accessible SVG and fits the `viewBox` to their projected bounds.
+- `src/App.tsx` creates the solved model once and uses it for both the SVG and displayed measurements.
+- `src/styles.css` provides a responsive layout and three neutral shades to distinguish face directions.
+
+The camera looks from positive X, Y, and Z. Positive Y projects upward, positive X down-right, and positive Z down-left. The three axes are equally foreshortened and separated by 120 degrees. These are viewing conventions, not move notation or instructions for holding a physical cube yet.
+
+Only the positive outer surfaces are visible: four polygons per surface, twelve in total. Their projected interiors do not overlap, so this solved-only view requires neither a depth buffer nor depth sorting. Internal faces and the three rear outer surfaces are excluded. This is deliberately not a renderer for arbitrary turns; visibility and occlusion must be revisited when implementing moves and animations.
+
+Polygon borders visualize divisions without changing piece dimensions. Shading is illustrative, not a simulation of reflective materials. The view is fixed: no drag-to-rotate, turns, or animation.
+
+### Visual verification
+
+1. Run `npm run dev` and open the page.
+2. Confirm that the top and two sides form a single cube with four unequal regions per visible surface.
+3. Check that the dimensions panel reads 50 mm and 22/28, 20/30, 17/33 mm.
+4. Resize to desktop and mobile widths; the SVG should remain fully visible, with the details below it on narrow screens.
+5. Run `npm run build` followed by `npm run preview` to check the production build locally.
+
+Projection tests verify axis directions, equal foreshortening, visible outer faces, their corner coordinates, projected areas, and that deriving the view does not modify the puzzle model. Browser layout checks are currently manual, not a committed end-to-end test suite.
+
 ## Documentation
 
 - [Product and MVP scope](docs/product.md)
@@ -87,7 +118,7 @@ Localization will cover user-facing text without changing puzzle logic or state.
 
 The target is Netlify's free plan, connected to the GitHub repository, using a `*.netlify.app` address without purchasing a domain. The free plan has usage limits; verify the current terms when setting up deployment. Paid options require the owner's explicit approval.
 
-Once the Vite application exists, the expected settings are:
+The Vite application now builds as a static site. The planned Netlify settings are:
 
 | Setting | Value |
 | --- | --- |
@@ -96,7 +127,7 @@ Once the Vite application exists, the expected settings are:
 | Build command | `npm run build` |
 | Publish directory | `dist` |
 
-These settings cannot produce a deployment yet: the application and build command do not exist. Connect Netlify and verify deployment in a separate stage after the first page is ready. Add redirects if and when client-side routing is introduced.
+Netlify is not connected yet. Set up and verify deployment in its own approved stage. Add redirects if and when client-side routing is introduced.
 
 ## Development workflow
 
