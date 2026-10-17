@@ -61,6 +61,6 @@ Other puzzles, user accounts, payments, and backend infrastructure are outside t
 
 ## Hosting
 
-The repository is public. The application will be deployed as a static site on Netlify's free plan, initially using a `netlify.app` subdomain. Paid services, options, and a custom domain require separate approval.
+The repository is public. Deployment is deferred until the solving workflow and animated step-by-step playback are ready. The application will then be deployed as a static site on Netlify's free plan, initially using a `netlify.app` subdomain. Paid services, options, and a custom domain require separate approval.
 
 Check the current free-plan limits before the first deployment. Free hosting does not mean unlimited traffic or builds.

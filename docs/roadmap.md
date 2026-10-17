@@ -18,22 +18,34 @@ The TypeScript model and its geometry tests are committed and published. The def
 
 The React + Vite page and fixed isometric SVG view are committed and published. Rendering uses the model's dimensions and solved positions, with a separate pure projection module. The view excludes internal and rear surfaces and works at desktop and mobile widths.
 
-## Current stage: multilingual interface
+## Completed stage: multilingual interface
 
-English and Ukrainian dictionaries and a language switcher are implemented locally for review. The language affects text, accessibility labels, and document metadata, not the puzzle model or geometry. No turns, animation, or deployment have been added.
-
-Completion criteria:
-
-- all existing user-facing text and SVG descriptions have both translations;
-- the switcher works in both directions and indicates the active language;
-- document language, title, and description follow the selected language;
-- switching preserves the puzzle model and SVG geometry;
-- keyboard operation and layout work in both languages at desktop and mobile widths;
-- dictionary tests, UI integration tests, type checking, and the production build pass.
+English and Ukrainian dictionaries and a language switcher are committed and published. The language affects text, accessibility labels, and document metadata, not the puzzle model or geometry. Tests verify switching in both directions and model preservation.
 
 Limitations: English is the initial language; selection is not persisted across reloads. Solution-progress preservation cannot be tested until solutions and playback exist.
 
-The next proposed stage is deployment on Netlify's free plan. Do not begin it until the owner approves.
+## Current stage: exact move rules
+
+Separate discrete state and complete face turns are implemented without changing the UI. See the [move-model guide](moves.md) for coordinate conventions and API details.
+
+Completion criteria:
+
+- six faces support clockwise/counterclockwise quarter-turns and half-turns;
+- moves update the current slots and exact orientations of four pieces;
+- inverse moves and four quarter-turns restore the complete state;
+- piece identities, individual dimensions, and input data are preserved;
+- tests verify known directions and invariants from both solved and mixed states;
+- existing UI tests, type checking, and the production build still pass.
+
+Limitations: the page is still a static SVG view. No Three.js dependencies, animated controls, solved-state detector, or solution search are included in this stage.
+
+## Agreed rendering direction and deployment order
+
+The owner approved Three.js with React Three Fiber for the next rendering stage. Correct depth and occlusion during shape-changing turns justify replacing the solved-only SVG renderer. Animation timing does not need an additional library at this point.
+
+Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
+
+The next proposed stage is the static Three.js scene. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Stage sequence
 
@@ -42,14 +54,14 @@ The next proposed stage is deployment on Netlify's free plan. Do not begin it un
 | 1. Solved puzzle model | Eight pieces with exact local dimensions | Pieces fill the cube without gaps or overlapping interiors |
 | 2. Static view | First React + Vite page with 3D-to-SVG projection | The solved cube is visible and the view uses the model |
 | 3. Multilingual interface | English/Ukrainian language switcher and localized initial UI | Switching languages updates text without resetting puzzle state |
-| 4. Deployment | First working deployment on Netlify's free plan | Production build succeeds and the site is accessible over HTTPS |
-| 5. Move rules | Pure logic for piece positions and orientations | An inverse move and four quarter-turns restore state; dimensions remain unchanged |
-| 6. Manual controls | Move buttons update the view | UI matches puzzle state after each move |
-| 7. Turn animation | Visible movement and highlighted moving pieces | The final frame matches the new state; conflicting concurrent actions are blocked |
-| 8. History and undo | Undo the latest move | The exact previous state is restored |
-| 9. Scrambling | A sequence of legal moves from the solved state | Replaying the recorded sequence reproduces the state |
-| 10. Solution search | An algorithm independent of UI | Applying the returned sequence solves the input state |
-| 11. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
+| 4. Move rules | Pure logic for piece slots and orientations | An inverse move and four quarter-turns restore state; dimensions remain unchanged |
+| 5. Static Three.js scene | Replace SVG with a React Three Fiber scene using the model | Correct piece dimensions, placement, and depth; bilingual UI still works |
+| 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
+| 7. History and undo | Undo the latest move | The exact previous state is restored |
+| 8. Scrambling | A sequence of legal moves from the solved state | Replaying the recorded sequence reproduces the state |
+| 9. Solution search | An algorithm independent of UI | Applying the returned sequence solves the input state |
+| 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
+| 11. Deployment | Publish the solving workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
 Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Verify that language switching preserves solution progress when playback is implemented.
 
@@ -71,4 +83,4 @@ Completion criteria:
 - invalid parameters are rejected;
 - tests and type checking pass.
 
-Limitations: solved state only; no turns, solved-state detection for arbitrary states, gaps, bevels, or internal mechanism.
+Original stage boundaries: solved geometry only, without turns, solved-state detection for arbitrary states, gaps, bevels, or an internal mechanism. Turns are added in the current separate stage.

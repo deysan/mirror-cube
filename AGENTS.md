@@ -21,8 +21,9 @@ Before working, read [README.md](README.md), the [product description](docs/prod
 
 ## Technical direction
 
-- Start with React, TypeScript, Vite, and SVG with projected 3D coordinates.
-- Before choosing a more complex graphics tool, explain the specific problem it solves.
+- Use React, TypeScript, and Vite. The current view uses SVG; migration to Three.js with React Three Fiber is approved for a separate rendering stage.
+- The reason for this migration is correct depth/occlusion handling during shape-changing turns, not the animation timing itself. Do not install those dependencies before that stage.
+- Before adding any further graphics or animation tool, explain the specific problem it solves.
 - Separate puzzle state/move rules, solution search, geometry/projection/animation, and UI.
 - Keep the mathematical model and solution search independent of React, SVG, and the selected language.
 - Introduce abstractions and dependencies only when there is a concrete need.
@@ -46,7 +47,7 @@ Run the checks available for the current stage. Report what was verified and wha
 ## GitHub and deployment
 
 - The repository is public: never commit secrets, tokens, private keys, or local environment files.
-- Target Netlify's free plan with a `*.netlify.app` address.
+- Target Netlify's free plan with a `*.netlify.app` address, but defer deployment until solving and animated step-by-step playback are ready.
 - Do not enable paid options, services, or a custom domain without separate approval. Check current free-plan terms before deployment.
 - Do not add deployment configuration before a buildable application exists.
 - The owner chooses the license; do not add one independently.

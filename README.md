@@ -6,7 +6,9 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 ## Current status
 
-The solved-state puzzle model, a static React/SVG view, and an English/Ukrainian language switcher are implemented. The page shows the owner's cube dimensions and its unequal divisions from a fixed isometric camera. Tests cover geometry, projection, and language switching. There is no move logic, solution search, or deployment yet.
+The solved-state puzzle model, discrete move rules, a static React/SVG view, and an English/Ukrainian language switcher are implemented. Move rules are tested separately and are not connected to the UI yet: the page still shows the solved cube from a fixed isometric camera.
+
+There are no animated turns, solution search, or public deployment yet. Migration to Three.js with React Three Fiber is approved for the next rendering stage. Netlify deployment is deferred until solving and animated step-by-step playback are ready.
 
 ## Local setup and checks
 
@@ -70,9 +72,17 @@ Parameters must be safe integers in whole millimeters. Edge length must be posit
 
 The default dimensions yield eight distinct shapes. Custom parameters are checked for valid off-center splits, but are not required to produce eight shapes distinguishable under rotation.
 
-The model uses ideal rectangular pieces without bevels, gaps, or an internal mechanism. It only describes the solved state; there are no turn rules or arbitrary-state solved checks yet. Data is exposed through TypeScript `readonly` types, not runtime freezing.
+The model uses ideal rectangular pieces without bevels, gaps, or an internal mechanism. This definition describes the solved geometry; current poses and move rules live in separate modules. Arbitrary-state solved checks are not implemented yet. Data is exposed through TypeScript `readonly` types, not runtime freezing.
 
 `src/puzzle/model.test.ts` checks piece identities, exact dimensions, containment, pairwise non-overlap, total volume, one-millimeter differences, input independence, and parameter validation. Containment, non-overlap, and equal total volume together verify that the pieces fill the cube without gaps.
+
+## Discrete state and turns
+
+- `src/puzzle/state.ts` creates a separate state with each piece's ID, current octant, and orientation.
+- `src/puzzle/moves.ts` applies complete 90-degree clockwise/counterclockwise or 180-degree turns on any of the six faces, without mutating input state or piece dimensions.
+- `src/puzzle/moves.test.ts` verifies directions, inverses, repeated turns, current-layer membership, and exact geometric invariants.
+
+Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry needed for future animation.
 
 ## Static SVG view
 
@@ -81,7 +91,7 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 - `src/App.tsx` owns the solved model as state initialized on mount and uses it for both the SVG and displayed measurements. Language is separate state.
 - `src/styles.css` provides a responsive layout and three neutral shades to distinguish face directions.
 
-The camera looks from positive X, Y, and Z. Positive Y projects upward, positive X down-right, and positive Z down-left. The three axes are equally foreshortened and separated by 120 degrees. These are viewing conventions, not move notation or instructions for holding a physical cube yet.
+The camera looks from positive X, Y, and Z. Positive Y projects upward, positive X down-right, and positive Z down-left. The three axes are equally foreshortened and separated by 120 degrees. These viewing directions agree with the move model's world axes, but the page does not show move notation or instructions for holding a physical cube yet.
 
 Only the positive outer surfaces are visible: four polygons per surface, twelve in total. Their projected interiors do not overlap, so this solved-only view requires neither a depth buffer nor depth sorting. Internal faces and the three rear outer surfaces are excluded. This is deliberately not a renderer for arbitrary turns; visibility and occlusion must be revisited when implementing moves and animations.
 
@@ -125,13 +135,14 @@ The default is English. Language selection is not persisted or inferred from bro
 
 - [Product and MVP scope](docs/product.md)
 - [Incremental development roadmap](docs/roadmap.md)
+- [Discrete state and move rules](docs/moves.md)
 - [Coding agent instructions](AGENTS.md)
 
 ## Technical direction
 
 - React and TypeScript for the interface and typed application logic.
 - Vite for local development and production builds.
-- SVG for the initial 3D view, projecting 3D coordinates onto a 2D surface.
+- SVG for the current static view; Three.js with React Three Fiber is the approved next renderer for correct depth and occlusion during shape-changing turns. Those dependencies are not installed yet.
 - Vitest for automated checks of the puzzle model.
 
 Puzzle state and move rules, solution search, geometry/projection/animation, and UI should remain separate responsibilities. Add modules and dependencies only when needed for the current stage.
@@ -142,16 +153,9 @@ Localization uses typed dictionaries without changing puzzle logic or state. Add
 
 The target is Netlify's free plan, connected to the GitHub repository, using a `*.netlify.app` address without purchasing a domain. The free plan has usage limits; verify the current terms when setting up deployment. Paid options require the owner's explicit approval.
 
-The Vite application now builds as a static site. The planned Netlify settings are:
+Deployment is deferred until the solving workflow and animated step-by-step playback are ready. The uncommitted deployment preparation has been removed; Netlify is not connected and there is no verified public URL.
 
-| Setting | Value |
-| --- | --- |
-| Production branch | `main` |
-| Base directory | Repository root |
-| Build command | `npm run build` |
-| Publish directory | `dist` |
-
-Netlify is not connected yet. Set up and verify deployment in its own approved stage. Add redirects if and when client-side routing is introduced.
+The application already produces a static build in `dist`. When deployment resumes, verify the current free-plan limits and configure the build for the Node.js version supported by `package.json`. Do not enable paid options or auto recharge.
 
 ## Development workflow
 
