@@ -2,7 +2,7 @@
 
 ## Scope
 
-The interface supports all six faces with clockwise/counterclockwise quarter-turns and half-turns. Four moving pieces are highlighted in amber while the others stay still. Completed moves are recorded in history and can be undone with animation. A generated sequence can also be executed as an animated scramble. There is no redo, solved-state detection, or solution search yet.
+The interface supports all six faces with clockwise/counterclockwise quarter-turns and half-turns. Four moving pieces are highlighted in amber while the others stay still. Completed moves are recorded in history and can be undone with animation. A generated sequence can also be executed as an animated scramble. Exact solved-state detection is available in the [domain layer](solver.md), but is not displayed in this UI yet. There is no redo or solution search yet.
 
 Face names refer to the fixed puzzle frame described in [the move-model guide](moves.md). Clockwise is always viewed directly from the chosen face, not from the current camera. The controls explain that F is the left visible side, R the right, and U the top in the isometric view. Rear faces remain partially hidden; the camera cannot be rotated yet.
 

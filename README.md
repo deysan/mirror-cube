@@ -10,7 +10,7 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-There is no redo, solved-state detection, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. It is not yet connected to a UI badge. There is no redo, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -74,7 +74,7 @@ Parameters must be safe integers in whole millimeters. Edge length must be posit
 
 The default dimensions yield eight distinct shapes. Custom parameters are checked for valid off-center splits, but are not required to produce eight shapes distinguishable under rotation.
 
-The model uses ideal rectangular pieces without bevels, gaps, or an internal mechanism. This definition describes the solved geometry; current poses and move rules live in separate modules. Arbitrary-state solved checks are not implemented yet. Data is exposed through TypeScript `readonly` types, not runtime freezing.
+The model uses ideal rectangular pieces without bevels, gaps, or an internal mechanism. This definition describes the solved geometry; current poses and move rules live in separate modules. `isSolved` checks discrete poses against the exact solved arrangement; full input/reachability validation is not implemented yet. Data is exposed through TypeScript `readonly` types, not runtime freezing.
 
 `src/puzzle/model.test.ts` checks piece identities, exact dimensions, containment, pairwise non-overlap, total volume, one-millimeter differences, input independence, and parameter validation. Containment, non-overlap, and equal total volume together verify that the pieces fill the cube without gaps.
 
@@ -86,6 +86,16 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 - `src/puzzle/scramble.ts` generates a 12-move random walk with different axes on adjacent moves, without UI or renderer dependencies.
 
 Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry used by animation.
+
+## Exact solvedness and planned search
+
+`src/puzzle/solved.ts` exports `isSolved(state)`. It requires all eight distinct piece identities, a common proper signed-axis orientation, and each slot equal to that common rotation applied to the piece's home slot. The result is independent of array order, dimensions, camera, language, and move history.
+
+A rigid rotation of the entire assembled cube is still solved: all 24 proper orientations are accepted. Reflections, individually twisted pieces, or mismatched positions are not. No bounding-box or approximate silhouette comparison is used. This is a logical identity-and-orientation goal, not a complete validity checker for imported states; `false` can also describe impossible input. Arbitrary photo/JSON data will need separate parsing and validation.
+
+The planned solver is IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation and coordinate encoding are the next prerequisites; search and worker integration are not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
+
+The interface remains unchanged: “Ready to turn” is an interaction status, not a solved-state announcement.
 
 ## 3D view and manual turns
 
@@ -168,6 +178,7 @@ The default is English. Language selection is not persisted or inferred from bro
 - [Product and MVP scope](docs/product.md)
 - [Incremental development roadmap](docs/roadmap.md)
 - [Discrete state and move rules](docs/moves.md)
+- [Exact solvedness and solver design](docs/solver.md)
 - [Animated manual turns](docs/animated-turns.md)
 - [Coding agent instructions](AGENTS.md)
 

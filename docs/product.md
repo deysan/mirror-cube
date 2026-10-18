@@ -48,7 +48,7 @@ This is a guide for incremental development, not a request to implement everythi
 
 Each piece has a stable identity and its own local dimensions along all three axes. A turn changes the piece's position and orientation, not its local dimensions.
 
-Similar dimensions must not be treated as equal: differences of a few millimeters must remain represented in the model. An approximately cubic silhouette is not sufficient to determine whether the puzzle is solved.
+Similar dimensions must not be treated as equal: differences of a few millimeters must remain represented in the model. An approximately cubic silhouette is not sufficient to determine whether the puzzle is solved. The implemented goal predicate requires every identified piece to have its exact home pose up to one common rigid rotation of the whole cube. All 24 proper face-aligned orientations are accepted; reflections are not. It does not require move history. See the [goal contract and solver design](solver.md).
 
 Puzzle state is the source of truth. Projection and intermediate animation frames do not determine move legality or solved status.
 

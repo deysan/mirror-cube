@@ -67,7 +67,7 @@ Completion criteria:
 
 The history/undo stage is committed locally. Undo remains a reversal of recorded moves, not a general solution-search algorithm.
 
-## Current stage: animated scrambling
+## Completed stage: animated scrambling
 
 A separate generator creates twelve legal turns with different axes on adjacent moves. The session animates them sequentially from the current state (initially solved), preserving previous history rather than silently resetting it. Each completion commits one move and schedules the next atomically.
 
@@ -83,7 +83,24 @@ Completion criteria:
 - language switching preserves the sequence, progress, and animation;
 - automated tests, type checking, production build, and browser checks pass.
 
-Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No pause/cancel, adjustable scramble length/speed, redo, solved-state detector, solver, or solution playback. Reload resets the session.
+Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No pause/cancel, adjustable scramble length/speed, redo, solver, or solution playback. Reload resets the session. This stage is committed locally.
+
+## Current stage: exact solvedness and solver design
+
+`src/puzzle/solved.ts` checks exact piece identities, orientations, and slots up to a common proper whole-cube rotation. It accepts all 24 discrete global orientations without reading move history or estimating a silhouette. The interface and rendering are unchanged.
+
+The [solver design](solver.md) selects IDA* over normalized corner permutation/twist coordinates with admissible distance-table heuristics. It specifies validation, reference-frame normalization, move mapping back to the physical frame, and independent solution verification. Search, coordinates, and worker integration are not implemented yet.
+
+Completion criteria:
+
+- all 24 proper solved frames are accepted and reflected frames rejected;
+- face turns, corner twists, inconsistent slots/orientations, and incorrect identities are not mistaken for solved states;
+- checks are exact, independent of dimensions/history/array order, and do not mutate input;
+- the predicate agrees with an independently enumerated goal set;
+- tests, type checking, and the production build pass;
+- the solver plan serves photo-derived states without relying on their generating moves.
+
+Limitations: the predicate is not an arbitrary-input parser or complete reachability validator, and is not connected to the UI. There is no search engine yet.
 
 ## Agreed rendering direction and deployment order
 
@@ -91,7 +108,7 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is exact solved-state detection and solver design, followed by an independent solution-search implementation. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is solver input validation and compact corner-state encoding, followed by heuristic tables and IDA* search. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Final functional goal: photos to a solution
 
@@ -111,14 +128,14 @@ The solver must accept a validated discrete state without move history; recognit
 | 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
-| 9. Solution search | An algorithm independent of UI and move history | Applying the returned sequence solves a valid input state without access to its generating moves |
+| 9. Solution search | Exact goal check (implemented), then validation/encoding, IDA*, and worker integration in separate stages | Applying the returned sequence solves a valid input state without access to its generating moves |
 | 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
 | 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
 | 12. Deployment | Publish the photo-to-solution workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
 Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Verify that language switching preserves solution progress when playback is implemented.
 
-Reversing move history must not be presented as a general solution-search algorithm. Choose the search algorithm separately once the move model is implemented and verified.
+Reversing move history must not be presented as a general solution-search algorithm. IDA* is selected in the solver design; implementation and performance verification remain separate stages.
 
 ## Completed model stage: scope and checks
 
