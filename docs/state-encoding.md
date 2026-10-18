@@ -2,14 +2,14 @@
 
 ## Scope
 
-This stage implements the history-independent input boundary for the planned solver:
+These modules implement the history-independent input boundary for the solver:
 
 - `src/puzzle/validation.ts`: validate plain structured data and return a clean state or a diagnostic code;
 - `src/puzzle/orientation.ts`: shared exact rotation operations, also used by solvedness;
 - `src/puzzle/corners.ts`: canonical piece/slot order and the corner-twist convention;
 - `src/solver/coordinates.ts`: encode/decode normalized states and map moves back to the input frame.
 
-Transition/distance tables are implemented separately (see [solver tables](solver-tables.md)). There is no search, worker, imported-state UI, or photo recognition yet. These functions do not import React or Three.js, consult history, or modify piece definitions.
+Transition/distance tables and pure search are implemented separately (see [solver tables](solver-tables.md) and [IDA* search](solver-search.md)). There is no worker integration, imported-state UI, or photo recognition yet. These functions do not import React or Three.js, consult history, or modify piece definitions.
 
 ## Validation API
 
@@ -113,7 +113,7 @@ The exported exclusive bounds are `PERMUTATION_COUNT = 5040` and `TWIST_COUNT = 
 
 For example, a +90° global Z frame maps normalized R clockwise to world U clockwise, and normalized U counterclockwise to world L counterclockwise. It must not reverse the turn value merely because the destination uses a negative world axis.
 
-Future search will use R/U/F in the normalized frame. None moves the `---` reference corner, so the saved frame remains constant throughout a solution. Tests verify that applying mapped moves in the original frame equals applying normalized moves then transforming the state.
+Search uses R/U/F in the normalized frame. None moves the `---` reference corner, so the saved frame remains constant throughout a solution. Tests verify that applying mapped moves in the original frame equals applying normalized moves then transforming the state.
 
 ## Verification and limits
 
@@ -129,6 +129,6 @@ Automated tests cover:
 - all 18 moves mapped through every frame and the R/U/F reference invariant;
 - copied data, negative-zero handling, non-mutation of frozen inputs, and preserved close-size identities.
 
-The factor ranges are exhaustively tested; the full Cartesian product of 3,674,160 states is not enumerated by the current tests. Existing exact move rules and solvedness tests remain independent checks. No claim is made about solver runtime or recognition accuracy: neither is implemented here.
+The codec tests exhaustively cover factor ranges, not all 3,674,160 full-pose round-trips. A separate test-only BFS in the search suite now enumerates the complete coordinate graph. Existing exact move rules and solvedness tests remain independent checks. Search measurements and verification limits are documented in the search guide; no photo-recognition accuracy is claimed.
 
 Run `npm test` and `npm run build`. There are no UI/rendering changes requiring a new browser review in this stage.

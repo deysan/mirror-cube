@@ -60,7 +60,7 @@ All current model lengths use whole millimeters, with no rounding or approximate
 
 ## First-version boundaries
 
-The application currently works with a known virtual puzzle state and tracks performed turns. Photo input is the final planned functional stage, after the independent solver and animated instructions are working.
+The application currently works with a known virtual puzzle state and tracks performed turns. A history-independent search core is implemented and tested, but not connected to a worker, solve button, or animated solution playback. Photo input is the final planned functional stage, after this shared solving workflow and its animated instructions are working.
 
 A single photograph may hide pieces or fail to distinguish their shapes and orientations. Do not promise reconstruction from one arbitrary image. The capture protocol, recognition approach, and any calibration requirements remain to be validated on the owner's physical cube. Start with its confirmed dimensions rather than assuming arbitrary Mirror Cube models are interchangeable.
 

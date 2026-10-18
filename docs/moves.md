@@ -4,7 +4,7 @@
 
 `src/puzzle/state.ts` and `src/puzzle/moves.ts` implement complete face turns without React, SVG, Three.js, or animation. The browser's [animated manual controls](animated-turns.md) apply these rules only after a visual turn completes.
 
-The functions operate on valid states created by `createSolvedState` and subsequent moves. They are not a validator or importer for arbitrary serialized puzzle states. Exact solved-state detection is implemented separately in `src/puzzle/solved.ts`; plain-data/reachability validation is available through `validatePuzzleState` (see [state encoding](state-encoding.md)), while solution search remains future work. See [the goal contract and solver design](solver.md).
+The functions operate on valid states created by `createSolvedState` and subsequent moves. They are not a validator or importer for arbitrary serialized puzzle states. Exact solved-state detection is implemented separately in `src/puzzle/solved.ts`; plain-data/reachability validation is available through `validatePuzzleState` (see [state encoding](state-encoding.md)), and the history-independent [search core](solver-search.md) is implemented separately. See [the goal contract and solver design](solver.md).
 
 ## Definitions versus state
 

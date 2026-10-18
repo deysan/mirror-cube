@@ -10,7 +10,7 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data state validation, normalized compact coordinates, move-transition tables, and admissible distance estimates are also implemented, without changing the UI. Solvedness is not yet connected to a UI badge. There is no redo, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data state validation, normalized compact coordinates, transition/distance tables, and a history-independent IDA* search core are also implemented, without changing the UI. Search verifies each result using exact domain moves and has cancellation/budget contracts. Solvedness is not yet connected to a UI badge. There is no worker integration, solve button, solution playback, redo, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -87,13 +87,13 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 
 Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry used by animation.
 
-## Exact solvedness and planned search
+## Exact solvedness and solution search
 
 `src/puzzle/solved.ts` exports `isSolved(state)`. It requires all eight distinct piece identities, a common proper signed-axis orientation, and each slot equal to that common rotation applied to the piece's home slot. The result is independent of array order, dimensions, camera, language, and move history.
 
 A rigid rotation of the entire assembled cube is still solved: all 24 proper orientations are accepted. Reflections, individually twisted pieces, or mismatched positions are not. No bounding-box or approximate silhouette comparison is used. This is a logical identity-and-orientation goal, not a complete validity checker for imported states; `false` can also describe impossible input. Plain-data candidates can be checked with `validatePuzzleState`; raw photo reconstruction is still a separate future stage.
 
-The planned solver is IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation, coordinate encoding, and transition/distance tables are implemented; search and worker integration are not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
+The solver core uses IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation, coordinate encoding, tables, and pure search are implemented; worker/UI integration is not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
 
 ### Validated solver input and compact coordinates
 
@@ -101,7 +101,7 @@ The planned solver is IDA* with compact corner-permutation/twist coordinates and
 - `src/puzzle/corners.ts` defines the canonical order and a slot-aware cyclic corner-twist convention. `src/puzzle/orientation.ts` shares exact rotation math with solvedness.
 - `src/solver/coordinates.ts` exports `encodeState`, `decodeState`, and `mapMoveFromFrame`. Encoding validates first, normalizes around piece `---`, and returns permutation/twist ranks plus the frame needed to recover the original pose.
 
-There are 5,040 permutation ranks and 729 twist ranks. `{ permutation: 0, twist: 0 }` is solved in the normalized frame. All 24 global rotations share coordinates, but the saved frame preserves the original physical orientation and maps future solution moves back to the correct faces. No generating move sequence is required or retained.
+There are 5,040 permutation ranks and 729 twist ranks. `{ permutation: 0, twist: 0 }` is solved in the normalized frame. All 24 global rotations share coordinates, but the saved frame preserves the original physical orientation and maps solution moves back to the correct faces. No generating move sequence is required or retained.
 
 See [the state validation and encoding guide](docs/state-encoding.md) for the API, exact twist convention, error codes, and verification. This is a solver input boundary, not a photo importer or search engine.
 
@@ -110,6 +110,12 @@ See [the state validation and encoding guide](docs/state-encoding.md) for the AP
 `src/solver/tables.ts` explicitly builds tables for the nine normalized R/U/F moves. `applyTableMove` performs compact-coordinate transitions, and `estimateRemainingMoves` returns the maximum of the exact permutation/twist distances. Adding those distances would overestimate the number of required turns.
 
 The retained typed-array buffers occupy 109,611 bytes (about 107 KiB). Construction is synchronous and not triggered on import or by the current UI. It will need to run in the future solver worker, with the table set reused across requests. See [the solver-table guide](docs/solver-tables.md) for layout, admissibility, local initialization measurements, and verification limits.
+
+### History-independent search core
+
+`src/solver/search.ts` exports `solvePuzzle(candidate, tables, options?)`. It returns a shortest face-turn solution in the input frame, an empty solution for an already-solved state, validation diagnostics, or an explicit cancellation/budget result. A budget limit never means “unsolvable.” Every returned path is replayed with exact `applyMove` rules and checked by `isSolved` against a copied input snapshot.
+
+Default traversal limits are 11 moves, 5,000,000 visited nodes, and a cooperative 5-second time budget. The synchronous core must not be called directly from UI handlers; queued events cannot interrupt it. See [the search guide](docs/solver-search.md) for the API, polling contract, independent shortest-path checks, and local measurements. A test-only complete coordinate BFS covers all 3,674,160 states and confirms diameter 11; the application does not retain that full graph.
 
 The interface remains unchanged: “Ready to turn” is an interaction status, not a solved-state announcement. There is no “Find solution” button yet.
 
@@ -197,6 +203,7 @@ The default is English. Language selection is not persisted or inferred from bro
 - [Exact solvedness and solver design](docs/solver.md)
 - [State validation and solver coordinates](docs/state-encoding.md)
 - [Solver transitions and distance tables](docs/solver-tables.md)
+- [History-independent IDA* search](docs/solver-search.md)
 - [Animated manual turns](docs/animated-turns.md)
 - [Coding agent instructions](AGENTS.md)
 

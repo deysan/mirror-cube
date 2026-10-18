@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). Solution search and worker/UI integration are **not implemented yet**. This document selects the search direction and its required checks; it is not an implementation claim or permission to start all following stages.
+`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). The synchronous IDA* search core is implemented; see [the search guide](solver-search.md) for its results, limits, cancellation contract, and measurements. Worker/UI integration and solution playback are **not implemented yet**. This document records the design and required checks; it is not permission to start all following stages.
 
 Input comes from manual turns/scrambling of the virtual cube or, in a later stage, photographs of a physical puzzle. Both are supported workflows using the same state-based solver. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
 
@@ -53,23 +53,23 @@ The UI is unchanged in this stage. Its “Ready to turn” message still reports
 
 Use iterative-deepening A* (IDA*) over compact corner coordinates. It searches with an increasing bound on `movesSoFar + lowerBoundToGoal`, retaining a search path rather than a full visited graph of puzzle states. This is suitable for a browser-based 2×2 solver without a server dependency.
 
-All quarter-turns and half-turns count as one move (face-turn metric). A completed search with admissible heuristics and sound pruning can return a shortest sequence in that metric; this does not imply minimum quarter-turn count or shortest animation time. Runtime and memory usage still need measurement before making responsiveness guarantees.
+All quarter-turns and half-turns count as one move (face-turn metric). A completed search with admissible heuristics and sound pruning can return a shortest sequence in that metric; this does not imply minimum quarter-turn count or shortest animation time. Local traversal measurements are documented in the search guide, but they are not browser/mobile responsiveness guarantees.
 
 ### Normalization and coordinates
 
 1. Validate the input's identities, slots, proper orientations, pose consistency, and corner-twist constraint. Do not reject odd corner permutations: a legal quarter-turn is itself an odd permutation of four corners on a 2×2.
 2. Use piece `---` as a reference corner. Mathematically rotate the input frame by the inverse of that corner's orientation, putting it at its home slot with identity orientation. This is a coordinate change, not a physical move or an animation.
 3. Encode the remaining seven-corner permutation (`7! = 5,040` possibilities) and six independent corner twists (`3^6 = 729` possibilities); the remaining twist follows from the twist-sum constraint.
-4. Future search will use R, U, and F with all three angles in this normalized frame. These faces do not move the reference corner. Opposite-face turns are equivalent to inverse turns of the other layer up to a whole-cube rotation, consistent with the goal's global-rotation equivalence.
+4. Search uses R, U, and F with all three angles in this normalized frame. These faces do not move the reference corner. Opposite-face turns are equivalent to inverse turns of the other layer up to a whole-cube rotation, consistent with the goal's global-rotation equivalence.
 5. Map the resulting face normals back to the original puzzle frame using the saved reference orientation. Preserve the outside-looking-in turn convention. The caller should receive ordinary `Move` values usable by `applyMove` and the existing renderer, not instructions tied to the normalization frame.
 
 This gives `7! × 3^6 = 3,674,160` legal states modulo whole-cube rotation. The implemented corner-twist convention, validation, encoder/decoder, and frame-to-world move mapping are detailed in the [state-encoding guide](state-encoding.md). Twist uses a consistent cyclic ordering of outward normals, not a naive single-axis label.
 
-### Implemented lower bounds and planned pruning
+### Implemented lower bounds and pruning
 
 `createSolverTables` builds transition tables through the exact domain moves and breadth-first distances separately for the permutation and twist coordinates. `estimateRemainingMoves` uses the **maximum**, not the sum, of those distances: one physical turn can improve both coordinates, so summing may overestimate. Construction is explicit and synchronous; it is not triggered by the current UI.
 
-Initially prune consecutive turns of the same face, since they can be combined into one supported turn or canceled. Add other pruning only with correctness tests. Table generation and the transition encoding must agree with the existing exact move model.
+Search prunes consecutive turns of the same face, since they can be combined into one supported turn or canceled. Add other pruning only with correctness tests. Table generation and the transition encoding must agree with the existing exact move model.
 
 Do not use reversed history as a fallback solver or call a search limit “unsolvable.” Distinguish a found solution, a validated solved input (empty sequence), invalid input, and interrupted/budget-limited search.
 
@@ -79,8 +79,8 @@ Implement in small stages:
 
 1. **Implemented:** input validation, reference-frame normalization, compact coordinates, and move mapping, with round-trip and move-equivalence tests.
 2. **Implemented:** transition/distance tables, projection checks, shortest-distance certificates, and independent depth-four full-state checks.
-3. **Next:** the pure IDA* search engine, with independently verified solutions and small-depth shortest-path checks.
-4. **Later:** browser worker integration, cancellation/stale-result protection, and bilingual result handling before animated solution playback.
+3. **Implemented:** the pure IDA* search engine, with exact result replay, limits/cancellation, independent full-pose shortest-path checks, and sampled comparisons to a complete coordinate-graph BFS oracle.
+4. **Next:** browser worker integration, actual event-loop-aware cancellation/stale-result protection, and bilingual result handling before animated solution playback.
 
 The worker should receive a puzzle-state snapshot, not React state or history. Applying a result must be tied to the snapshot that was searched. Do not block the main thread with an unbounded search or apply a late result to a changed puzzle.
 
@@ -104,5 +104,7 @@ No empty solver/worker modules, external solver libraries, image models, or netw
 `src/puzzle/validation.test.ts` and `src/solver/coordinates.test.ts` additionally verify reachability constraints, clean snapshots, all coordinate-factor ranges, history-free round-trips, and move equivalence through all global frames. See the state-encoding guide for coverage and limits.
 
 `src/solver/tables.test.ts` checks factor transitions, inverse/turn identities, distance certificates, cross-factor independence, and heuristic admissibility against an independent shallow full-pose traversal. Initialization and ownership details are in the solver-table guide.
+
+`src/solver/search.test.ts` checks returned solutions, all global frames, shortest lengths against full-pose and coordinate BFS oracles, snapshot ownership, and validation/cancellation/budget contracts. The complete coordinate graph is traversed only by the test oracle, not by application initialization. See the search guide for coverage and limits.
 
 Run `npm test` and `npm run build`. There are no UI or renderer changes to visually verify in this stage.

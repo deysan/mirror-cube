@@ -2,7 +2,7 @@
 
 ## Scope
 
-`src/solver/tables.ts` implements normalized move lookups and admissible lower bounds for the planned IDA* solver. It builds on the [validated coordinate encoding](state-encoding.md) and the existing exact `applyMove` rules. It does not implement search, workers, a solve button, or solution playback.
+`src/solver/tables.ts` implements normalized move lookups and admissible lower bounds for the IDA* solver. It builds on the [validated coordinate encoding](state-encoding.md) and the existing exact `applyMove` rules. Search is implemented separately in [the search core](solver-search.md); workers, a solve button, and solution playback are not yet implemented.
 
 Both input workflows use this same foundation: manually turn/scramble the virtual cube, or later reconstruct and confirm a physical state from photographs. Neither tables nor search require the input's move history.
 
@@ -91,6 +91,6 @@ The current application does not import these tables, so its UI behavior and pro
 - independent full-pose breadth-first enumeration through depth four: **2,232 distinct states**, with no heuristic overestimate;
 - max-versus-sum behavior, invalid lookup arguments, and independently owned deterministic table sets.
 
-The edge inequalities and descending-neighbor checks certify the shortest-distance labels without repeating the builder's BFS: edge bounds prevent overestimation and descending paths realize each label. Existing coordinate and domain tests remain in place. The full 3,674,160-state Cartesian graph is not exhaustively traversed here.
+The edge inequalities and descending-neighbor checks certify the shortest-distance labels without repeating the builder's BFS: edge bounds prevent overestimation and descending paths realize each label. Existing coordinate and domain tests remain in place. The table tests do not exhaustively traverse the full 3,674,160-state Cartesian graph. The separate search tests now do so with a test-only BFS oracle; it is not part of table construction.
 
-Run `npm test` and `npm run build`. There are no UI/rendering changes requiring a browser review. The next functional work is IDA* search, followed by safe worker/UI integration and animated solution playback.
+Run `npm test` and `npm run build`. There are no UI/rendering changes requiring a browser review. The search core is implemented; the next functional work is safe worker/UI integration, followed by animated solution playback.

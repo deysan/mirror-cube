@@ -2,7 +2,7 @@
 
 ## Scope
 
-The interface supports all six faces with clockwise/counterclockwise quarter-turns and half-turns. Four moving pieces are highlighted in amber while the others stay still. Completed moves are recorded in history and can be undone with animation. A generated sequence can also be executed as an animated scramble. Exact solved-state detection is available in the [domain layer](solver.md), but is not displayed in this UI yet. There is no redo or solution search yet.
+The interface supports all six faces with clockwise/counterclockwise quarter-turns and half-turns. Four moving pieces are highlighted in amber while the others stay still. Completed moves are recorded in history and can be undone with animation. A generated sequence can also be executed as an animated scramble. Exact solved-state detection is available in the [domain layer](solver.md), but is not displayed in this UI yet. The [search core](solver-search.md) is implemented separately, but there is no solve UI, solution playback, or redo yet.
 
 Face names refer to the fixed puzzle frame described in [the move-model guide](moves.md). Clockwise is always viewed directly from the chosen face, not from the current camera. The controls explain that F is the left visible side, R the right, and U the top in the isometric view. Rear faces remain partially hidden; the camera cannot be rotated yet.
 
@@ -43,7 +43,7 @@ On successful completion:
 
 Until that completion, the history and committed puzzle remain unchanged. Both manual and undo requests are blocked during either kind of animation. The status distinguishes an undo from a manual turn and describes the actual inverse being animated. Language switching preserves both history and the pending transaction.
 
-Repeated undo restores every previous state back to the session's initial state. Starting a new move afterward appends to the remaining history. There is no redo stack, jump-to-entry action, persistence, or solution search. An empty history is not used as a general solved-state detector.
+Repeated undo restores every previous state back to the session's initial state. Starting a new move afterward appends to the remaining history. There is no redo stack, jump-to-entry action, persistence, or solution-search UI. An empty history is not used as a general solved-state detector.
 
 ## Scrambling
 
