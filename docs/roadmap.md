@@ -102,7 +102,7 @@ Completion criteria:
 
 The predicate remains separate from input validation and is not connected to the UI. This stage is committed locally.
 
-## Current stage: input validation and compact solver coordinates
+## Completed stage: input validation and compact solver coordinates
 
 The plain-data validator checks structure, identities, slot occupancy, proper rotations, pose consistency, and total corner twist. The codec normalizes around piece `---`, encodes seven-corner permutation and six independent twists, and preserves the frame for exact decoding and move mapping. See the [state-encoding guide](state-encoding.md).
 
@@ -117,7 +117,22 @@ Completion criteria:
 - mapped moves agree with the existing exact rules, including negative world faces;
 - previous tests, type checking, and production build pass.
 
-Limitations: no recognition, import UI, transition/distance tables, search, or worker integration. The codec is internal, not a versioned interchange format; the full Cartesian state space is not exhaustively traversed by tests.
+The codec is internal, not a versioned interchange format; the full Cartesian state space is not exhaustively traversed by tests. This stage is committed locally.
+
+## Current stage: move-transition and distance tables
+
+The normalized R/U/F move tables are generated through the exact domain rules. Breadth-first traversal computes separate permutation and twist distances. Their maximum gives an admissible, consistent lower bound in the face-turn metric. See the [solver-table guide](solver-tables.md).
+
+Completion criteria:
+
+- all factor rows have in-range transitions, correct inverses, and quarter/half-turn identities;
+- projected transitions agree with full-state moves when the other coordinate is nonzero;
+- distances cover both graphs, have zero only at the goal, and satisfy shortest-distance certificates;
+- the max heuristic does not overestimate an independent shallow full-state traversal;
+- table construction is explicit, deterministic, independently owned, and has measured retained buffer size;
+- tests, type checking, and production build pass.
+
+Limitations: synchronous construction is not yet integrated into a worker; no search or solve button is added. Full-state tests are bounded, and local initialization measurements are not browser performance guarantees.
 
 ## Agreed rendering direction and deployment order
 
@@ -125,11 +140,11 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is normalized move-transition and admissible distance tables, followed by IDA* search. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is IDA* search using the implemented tables, followed by worker/UI integration for finding solutions from the current state. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
-## Final functional goal: photos to a solution
+## Final functional goal: two inputs, one solving workflow
 
-Photo-based reconstruction of the physical puzzle is required, not an optional extension. Implement it last among the functional stages, after independent search and animated playback are verified. The current virtual controls provide known test states and visualization for that workflow.
+Manual turns/scrambling and photo-based reconstruction are both first-class ways to provide a puzzle state. Complete the manual-input solve/playback workflow first, then add photos as the final functional stage. Photo-based reconstruction remains required, not an optional extension. Both routes use the same independent solver and animated instructions; manual controls are not only development tooling.
 
 The solver must accept a validated discrete state without move history; recognition should be a separate input boundary, not part of search or rendering. The photo stage must establish the capture protocol on the owner's cube, handle occlusion and ambiguity, show a candidate state for confirmation/correction, and validate it before solving. One arbitrary image is not assumed sufficient. No recognition model or external service is selected yet.
 
@@ -145,10 +160,10 @@ The solver must accept a validated discrete state without move history; recognit
 | 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
-| 9. Solution search | Exact goal check and validation/encoding (implemented), then tables, IDA*, and worker integration in separate stages | Applying the returned sequence solves a valid input state without access to its generating moves |
+| 9. Solution search | Goal check, validation/encoding, and tables (implemented), then IDA* and worker integration | Applying the returned sequence solves a valid input state without access to its generating moves |
 | 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
 | 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
-| 12. Deployment | Publish the photo-to-solution workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
+| 12. Deployment | Publish both input-to-solution workflows on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
 Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Verify that language switching preserves solution progress when playback is implemented.
 

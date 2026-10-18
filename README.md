@@ -1,8 +1,8 @@
 # MirrorCube
 
-MirrorCube is an interactive, step-by-step guide to solving a physical 2×2 Mirror Cube from photographs. The target workflow is **photos → reconstructed and confirmed puzzle state → solution search → animated instructions** showing how to hold and turn the puzzle.
+MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. There are two target input workflows: **manually turn/scramble the virtual cube**, or **reconstruct and confirm a physical state from photographs**. Both lead to the same solution search and animated instructions showing how to hold and turn the puzzle.
 
-Photo input is the final planned functional stage, after the independent solver and playback. The current virtual cube is their foundation, not the final input workflow. The solver must accept a validated state without requiring move history. A single photo may be insufficient; guided views and confirmation will be designed and verified during the photo-input stage.
+Manual input is a full product workflow, not only a development tool. Complete its solve/playback path first, then add photo input as the final functional stage. The solver must accept a validated state without requiring move history. A single photo may be insufficient; guided views and confirmation will be designed and verified during the photo-input stage.
 
 The interface supports **English and Ukrainian**. Solution instructions will support both languages when implemented. Repository documentation is written in English.
 
@@ -10,7 +10,7 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data state validation and normalized compact solver coordinates are also implemented, without changing the UI. Solvedness is not yet connected to a UI badge. There is no redo, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data state validation, normalized compact coordinates, move-transition tables, and admissible distance estimates are also implemented, without changing the UI. Solvedness is not yet connected to a UI badge. There is no redo, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -93,7 +93,7 @@ Completed turns use only coordinate swaps and sign changes, not floating-point a
 
 A rigid rotation of the entire assembled cube is still solved: all 24 proper orientations are accepted. Reflections, individually twisted pieces, or mismatched positions are not. No bounding-box or approximate silhouette comparison is used. This is a logical identity-and-orientation goal, not a complete validity checker for imported states; `false` can also describe impossible input. Plain-data candidates can be checked with `validatePuzzleState`; raw photo reconstruction is still a separate future stage.
 
-The planned solver is IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation and coordinate encoding are implemented; transition/distance tables, search, and worker integration are not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
+The planned solver is IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation, coordinate encoding, and transition/distance tables are implemented; search and worker integration are not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
 
 ### Validated solver input and compact coordinates
 
@@ -105,7 +105,13 @@ There are 5,040 permutation ranks and 729 twist ranks. `{ permutation: 0, twist:
 
 See [the state validation and encoding guide](docs/state-encoding.md) for the API, exact twist convention, error codes, and verification. This is a solver input boundary, not a photo importer or search engine.
 
-The interface remains unchanged: “Ready to turn” is an interaction status, not a solved-state announcement.
+### Move transitions and lower bounds
+
+`src/solver/tables.ts` explicitly builds tables for the nine normalized R/U/F moves. `applyTableMove` performs compact-coordinate transitions, and `estimateRemainingMoves` returns the maximum of the exact permutation/twist distances. Adding those distances would overestimate the number of required turns.
+
+The retained typed-array buffers occupy 109,611 bytes (about 107 KiB). Construction is synchronous and not triggered on import or by the current UI. It will need to run in the future solver worker, with the table set reused across requests. See [the solver-table guide](docs/solver-tables.md) for layout, admissibility, local initialization measurements, and verification limits.
+
+The interface remains unchanged: “Ready to turn” is an interaction status, not a solved-state announcement. There is no “Find solution” button yet.
 
 ## 3D view and manual turns
 
@@ -190,6 +196,7 @@ The default is English. Language selection is not persisted or inferred from bro
 - [Discrete state and move rules](docs/moves.md)
 - [Exact solvedness and solver design](docs/solver.md)
 - [State validation and solver coordinates](docs/state-encoding.md)
+- [Solver transitions and distance tables](docs/solver-tables.md)
 - [Animated manual turns](docs/animated-turns.md)
 - [Coding agent instructions](AGENTS.md)
 

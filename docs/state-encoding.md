@@ -9,7 +9,7 @@ This stage implements the history-independent input boundary for the planned sol
 - `src/puzzle/corners.ts`: canonical piece/slot order and the corner-twist convention;
 - `src/solver/coordinates.ts`: encode/decode normalized states and map moves back to the input frame.
 
-There is no search, transition/distance table, worker, input UI, or photo recognition yet. These functions do not import React or Three.js, consult history, or modify piece definitions.
+Transition/distance tables are implemented separately (see [solver tables](solver-tables.md)). There is no search, worker, imported-state UI, or photo recognition yet. These functions do not import React or Three.js, consult history, or modify piece definitions.
 
 ## Validation API
 

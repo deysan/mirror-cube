@@ -4,7 +4,7 @@
 
 MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. The application will provide its interface and solution instructions in English and Ukrainian. The owner is a frontend developer experienced in React and TypeScript who wants to review changes, understand the architecture, and control decisions.
 
-The final goal is photos of a physical cube → reconstructed and confirmed state → solution search → animated instructions. Photo input is required but deliberately deferred until the solver and playback work. The virtual cube is a foundation, not the complete product. Do not assume one photo is sufficient or that move history will be available to the solver.
+There are two first-class input workflows: manually turn/scramble the virtual cube, or reconstruct and confirm a physical state from photographs. Both feed the same solution search and animated instructions. Complete the manual-input solve workflow first; photo input is required but deliberately deferred until the solver and playback work. Do not assume one photo is sufficient or that move history will be available to the solver.
 
 Before working, read [README.md](README.md), the [product description](docs/product.md), and the [roadmap](docs/roadmap.md). Do not treat planned features as already implemented.
 
@@ -44,6 +44,7 @@ Add meaningful tests alongside the relevant functionality:
 - animation endpoints match exact move geometry, and duplicate/stale completion callbacks cannot commit twice;
 - state validation rejects impossible corner twists but accepts legal odd permutations on a 2×2;
 - solver encoding preserves exact poses through round-trips and maps moves correctly through all global frames;
+- solver table transitions agree with exact moves, and lower bounds do not overestimate solution length;
 - applying a returned solution actually solves the input state without requiring its move history;
 - language switching updates user-facing text without changing puzzle state or solution progress.
 

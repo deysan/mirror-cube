@@ -2,9 +2,9 @@
 
 ## Status and scope
 
-`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Solution search, transition/distance tables, and worker/UI integration are **not implemented yet**. This document selects the search direction and its required checks; it is not an implementation claim or permission to start all following stages.
+`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). Solution search and worker/UI integration are **not implemented yet**. This document selects the search direction and its required checks; it is not an implementation claim or permission to start all following stages.
 
-The final input will come from photographs of a physical puzzle. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
+Input comes from manual turns/scrambling of the virtual cube or, in a later stage, photographs of a physical puzzle. Both are supported workflows using the same state-based solver. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
 
 ## Implemented goal predicate
 
@@ -65,9 +65,9 @@ All quarter-turns and half-turns count as one move (face-turn metric). A complet
 
 This gives `7! × 3^6 = 3,674,160` legal states modulo whole-cube rotation. The implemented corner-twist convention, validation, encoder/decoder, and frame-to-world move mapping are detailed in the [state-encoding guide](state-encoding.md). Twist uses a consistent cyclic ordering of outward normals, not a naive single-axis label.
 
-### Planned lower bounds and pruning
+### Implemented lower bounds and planned pruning
 
-Build small breadth-first distance tables separately for the permutation and twist coordinates using the same nine normalized moves. Use the **maximum**, not the sum, of their distances as the heuristic: one physical turn can improve both coordinates, so summing may overestimate.
+`createSolverTables` builds transition tables through the exact domain moves and breadth-first distances separately for the permutation and twist coordinates. `estimateRemainingMoves` uses the **maximum**, not the sum, of those distances: one physical turn can improve both coordinates, so summing may overestimate. Construction is explicit and synchronous; it is not triggered by the current UI.
 
 Initially prune consecutive turns of the same face, since they can be combined into one supported turn or canceled. Add other pruning only with correctness tests. Table generation and the transition encoding must agree with the existing exact move model.
 
@@ -78,8 +78,9 @@ Do not use reversed history as a fallback solver or call a search limit “unsol
 Implement in small stages:
 
 1. **Implemented:** input validation, reference-frame normalization, compact coordinates, and move mapping, with round-trip and move-equivalence tests.
-2. **Next:** heuristic/transition tables and the pure search engine, with independently verified solutions and small-depth shortest-path checks.
-3. **Later:** browser worker integration, cancellation/stale-result protection, and bilingual result handling before animated solution playback.
+2. **Implemented:** transition/distance tables, projection checks, shortest-distance certificates, and independent depth-four full-state checks.
+3. **Next:** the pure IDA* search engine, with independently verified solutions and small-depth shortest-path checks.
+4. **Later:** browser worker integration, cancellation/stale-result protection, and bilingual result handling before animated solution playback.
 
 The worker should receive a puzzle-state snapshot, not React state or history. Applying a result must be tied to the snapshot that was searched. Do not block the main thread with an unbounded search or apply a late result to a changed puzzle.
 
@@ -101,5 +102,7 @@ No empty solver/worker modules, external solver libraries, image models, or netw
 - close dimensions, reordered/deserialized states, and frozen-input non-mutation.
 
 `src/puzzle/validation.test.ts` and `src/solver/coordinates.test.ts` additionally verify reachability constraints, clean snapshots, all coordinate-factor ranges, history-free round-trips, and move equivalence through all global frames. See the state-encoding guide for coverage and limits.
+
+`src/solver/tables.test.ts` checks factor transitions, inverse/turn identities, distance certificates, cross-factor independence, and heuristic admissibility against an independent shallow full-pose traversal. Initialization and ownership details are in the solver-table guide.
 
 Run `npm test` and `npm run build`. There are no UI or renderer changes to visually verify in this stage.

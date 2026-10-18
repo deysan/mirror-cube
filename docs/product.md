@@ -2,18 +2,20 @@
 
 ## Purpose
 
-MirrorCube's target workflow is to recognize the state of a physical 2×2 Mirror Cube from photographs, find a solution, and present interactive, animated instructions. Users should understand each movement rather than rely only on move notation. Photo input is a required final functional stage, not an optional extension; it is not implemented yet.
+MirrorCube will let users prepare a 2×2 Mirror Cube state by manually turning/scrambling the virtual cube or by reconstructing a physical state from photographs, then find a solution and follow animated instructions. Both input methods are full product workflows sharing one solver and playback system. Users should understand each movement rather than rely only on move notation. Photo input is a required final functional stage, not an optional extension; it is not implemented yet.
 
 The puzzle consists of eight differently sized pieces. Turns change its outer shape; in the solved state, the pieces form a cube with flush outer surfaces.
 
 ## Core user journey
 
-1. Photograph the physical puzzle using guided views; the required number and angles will be determined during the photo-input stage.
-2. Review the reconstructed 3D state, resolve ambiguities with additional views or corrections, and confirm it.
+1. Choose an input method:
+   - manually turn or scramble the virtual cube; or
+   - photograph the physical puzzle using guided views, whose number and angles will be established during the photo-input stage.
+2. Review the 3D state. For photo input, resolve ambiguities with additional views or corrections and confirm the reconstructed state.
 3. Request a solution from that validated state, without needing its move history.
-4. Follow the solution step by step on the physical puzzle, using orientation guidance, animations, and highlighted moving pieces.
+4. Follow the solution step by step in the virtual view or on the physical puzzle, using orientation guidance, animations, and highlighted moving pieces.
 
-The current virtual cube, manual turns, scrambling, and undo provide a testable foundation for the solver and playback. They are not a substitute for the final photo-to-solution workflow.
+Complete “manual turns/scramble → find solution → animated steps” first. Manual controls remain a supported input route after photo recognition is added; they are not just test tooling and do not replace the required photo workflow.
 
 Each step should clearly explain:
 
