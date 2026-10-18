@@ -10,13 +10,17 @@ describe("translation dictionaries", () => {
     expect(Object.keys(messages.en.faceNames).sort()).toEqual(Object.keys(messages.uk.faceNames).sort());
     expect(Object.keys(messages.en.turnOptions).sort()).toEqual(["-1", "1", "2"]);
     expect(Object.keys(messages.uk.turnOptions).sort()).toEqual(["-1", "1", "2"]);
+    expect(Object.keys(messages.uk.stateErrors).sort()).toEqual(Object.keys(messages.en.stateErrors).sort());
+    expect(Object.keys(messages.uk.searchLimits).sort()).toEqual(["depth", "nodes", "time"]);
+    expect(Object.keys(messages.en.searchLimits).sort()).toEqual(["depth", "nodes", "time"]);
   });
 
   it.each(LANGUAGES)("has no empty translations for $label", ({ code }) => {
-    const { axisLayers, faceNames, turnOptions, ...labels } = messages[code];
+    const { axisLayers, faceNames, turnOptions, stateErrors, searchLimits, ...labels } = messages[code];
     const strings = [
       ...Object.values(labels), ...Object.values(axisLayers),
       ...Object.values(faceNames), ...Object.values(turnOptions),
+      ...Object.values(stateErrors), ...Object.values(searchLimits),
     ];
 
     for (const value of strings) {

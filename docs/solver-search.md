@@ -4,7 +4,7 @@
 
 `src/solver/search.ts` implements synchronous solution search from plain puzzle-state data. It uses the [normalized coordinates](state-encoding.md), [transition/distance tables](solver-tables.md), and [exact solvedness contract](solver.md). It has no React, Three.js, language, history, or piece-dimension dependency.
 
-This is the common solver core for manual turns/scrambling and future confirmed photo reconstruction. Worker integration, a “Find solution” button, localized result handling, and animated solution playback are **not implemented yet**. The current UI does not import or run the search code.
+This is the common solver core for manual turns/scrambling and future confirmed photo reconstruction. [Worker integration](solver-worker.md), a “Find solution” button, and localized result handling are implemented separately. The UI runs search only in a dedicated worker, not on the main thread. Animated solution playback is **not implemented yet**.
 
 ## API
 
@@ -12,7 +12,7 @@ This is the common solver core for manual turns/scrambling and future confirmed 
 import { createSolverTables } from "./solver/tables";
 import { solvePuzzle } from "./solver/search";
 
-// Explicit initialization, in a test or a future worker, not a render callback.
+// Explicit initialization, in a test or a worker, not a render callback.
 const tables = createSolverTables();
 const result = solvePuzzle(candidate, tables, {
   maxDepth: 11,
@@ -54,7 +54,7 @@ The normalized graph's diameter is **11 face turns**, confirmed by the complete 
 
 When multiple controls apply at the same check, cancellation takes precedence, then the node cap, then time. An initial depth lower bound above `maxDepth` can stop without visiting nodes. Each call starts a fresh search; interrupted work is not resumed.
 
-**A synchronous callback is not yet browser cancellation.** Normal timers, `AbortSignal` events, and queued worker messages cannot run while this synchronous DFS occupies their event loop. Worker integration must implement a real interruption strategy, such as worker termination or yielding search, and guard stale results by request/snapshot identity. Do not wire a queued “cancel” message to a flag and assume it can interrupt this call. No worker, shared-memory configuration, or asynchronous scheduler is added here.
+**A synchronous callback is not browser cancellation.** Normal timers, `AbortSignal` events, and queued worker messages cannot run while this synchronous DFS occupies their event loop. The separate browser integration terminates the worker for cancellation and guards stale results by worker/request/snapshot identity. Do not wire a queued “cancel” message to a flag and assume it can interrupt this call. The core remains synchronous; it adds no shared-memory configuration or asynchronous scheduler.
 
 ## Search and correctness
 
@@ -93,4 +93,4 @@ The complete graph's distance histogram, at depths 0 through 11, is:
 
 A local Node.js v24.19.0 run, using a non-minified Vite library bundle and already-built tables, solved and checked 101 cases: the depth-eleven fixture `{ permutation: 7, twist: 22 }` plus 100 deterministic samples (LCG seed 42, multiplier 1664525, increment 1013904223, unsigned 32-bit output modulo 3,674,160). Total search-call time was approximately **53 ms**; the slowest call took **14.2 ms**, visiting **704,205 nodes**. Every length matched the complete BFS oracle, and every result passed exact domain replay. These are development-machine observations, not browser/mobile guarantees, exhaustive worst-case measurements, or test thresholds. Table initialization is a separate cost; see the table guide.
 
-Run `npm test`, `npm run typecheck`, and `npm run build`. No UI/rendering changes require browser review in this stage. The next proposed stage is safe worker/UI integration before animated playback; both require separate owner approval.
+Run `npm test`, `npm run typecheck`, and `npm run build`. The pure-core stage did not change UI/rendering. Its subsequent worker/UI integration has separate browser checks in the worker guide. Animated solution playback remains the next proposed stage and requires owner approval.

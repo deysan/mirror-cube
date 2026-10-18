@@ -1,4 +1,5 @@
 import type { Face, Move } from "../puzzle/moves";
+import type { StateErrorCode } from "../puzzle/validation";
 
 export const LANGUAGES = [
   { code: "en", label: "English" },
@@ -25,6 +26,25 @@ export interface Messages {
   readonly historyEmpty: string;
   readonly historyHint: string;
   readonly undoLastMove: string;
+  readonly solutionTitle: string;
+  readonly findSolution: string;
+  readonly cancelSearch: string;
+  readonly searchHint: string;
+  readonly searchIdle: string;
+  readonly searchRunning: string;
+  readonly searching: string;
+  readonly searchCancelled: string;
+  readonly searchSolved: string;
+  readonly solutionCount: string;
+  readonly solutionMoves: string;
+  readonly solutionHint: string;
+  readonly searchInvalid: string;
+  readonly invalidCorner: string;
+  readonly stateErrors: Readonly<Record<StateErrorCode, string>>;
+  readonly searchLimit: string;
+  readonly searchLimits: Readonly<Record<"depth" | "nodes" | "time", string>>;
+  readonly searchError: string;
+  readonly searchTimeout: string;
   readonly sceneLoading: string;
   readonly sceneFailed: string;
   readonly controlsTitle: string;
@@ -68,6 +88,35 @@ export const messages = {
     historyEmpty: "No recorded moves. Complete a turn to add it here.",
     historyHint: "Latest first. Undo removes the last move after its inverse turn finishes. R′ means counterclockwise; R2 means a half-turn.",
     undoLastMove: "Undo last move",
+    solutionTitle: "Solution",
+    findSolution: "Find solution",
+    cancelSearch: "Cancel search",
+    searchHint: "Search from the current state without using move history. Turns are paused during search; the first search also prepares lookup tables.",
+    searchIdle: "Ready to search once the 3D view is ready and all turns have finished.",
+    searchRunning: "Finding a solution… You can cancel without changing the cube.",
+    searching: "Finding solution",
+    searchCancelled: "Search cancelled. The cube and history are unchanged.",
+    searchSolved: "The cube is already solved. No moves are needed.",
+    solutionCount: "Moves to solve",
+    solutionMoves: "Solution moves in execution order",
+    solutionHint: "No moves have been applied. Animated playback is not available yet. Making a turn clears this result. A half-turn counts as one move.",
+    searchInvalid: "Invalid puzzle state.",
+    invalidCorner: "Corner entry",
+    stateErrors: {
+      structure: "The state data is incomplete or malformed.",
+      "corner-count": "The state must contain exactly eight pieces.",
+      "piece-id": "A piece identity is unknown.",
+      "duplicate-piece": "A piece identity is repeated.",
+      slot: "A piece position is invalid.",
+      "duplicate-slot": "More than one piece occupies the same position.",
+      orientation: "A piece orientation is not a proper face-aligned rotation.",
+      pose: "A piece position and orientation disagree.",
+      "twist-sum": "The corner twists cannot be reached with legal turns.",
+    },
+    searchLimit: "Search stopped before finding a solution. This does not mean the state is unsolvable.",
+    searchLimits: { depth: "Move-depth limit reached.", nodes: "Search-node limit reached.", time: "Search-time limit reached." },
+    searchError: "Could not run the solver. Try again. Manual turns are still available.",
+    searchTimeout: "The solver did not respond in time. Try again. The cube and history are unchanged.",
     sceneLoading: "Loading 3D view…",
     sceneFailed: "3D view unavailable",
     controlsTitle: "Make a turn",
@@ -86,7 +135,7 @@ export const messages = {
     cubeEdge: "Cube edge",
     axisLayers: { x: "X layers", y: "Y layers", z: "Z layers" },
     millimeters: "mm",
-    stageNote: "Manual turns, scrambling, history, and animated undo are available. Solution search is not implemented yet. Reloading resets the puzzle and clears history.",
+    stageNote: "Manual turns, scrambling, history, animated undo, and solution search are available. Animated solution playback and photo input are not available yet. Reloading resets the puzzle, history, and search result.",
     cubeTitle: "2×2 Mirror Cube",
     cubeDescription: "A fixed 3D isometric view of the puzzle. During a turn, four highlighted pieces rotate together; the other four remain still.",
     sceneUnavailable: "The 3D view is unavailable. Check WebGL 2 support and reload the page. Turn controls are disabled; completed turns are kept, and unfinished or queued turns are not applied.",
@@ -109,6 +158,35 @@ export const messages = {
     historyEmpty: "Записаних ходів немає. Завершіть поворот, щоб додати його сюди.",
     historyHint: "Новіші ходи зверху. Запис зникає після завершення зворотного повороту. R′ означає проти годинникової, R2 — півоберту.",
     undoLastMove: "Скасувати останній хід",
+    solutionTitle: "Розв’язок",
+    findSolution: "Знайти розв’язок",
+    cancelSearch: "Скасувати пошук",
+    searchHint: "Пошук від поточного стану без використання історії ходів. Під час пошуку повороти заблоковані; перший пошук також готує таблиці переходів.",
+    searchIdle: "Пошук доступний після завантаження 3D-вигляду та завершення всіх поворотів.",
+    searchRunning: "Шукаємо розв’язок… Пошук можна скасувати без зміни кубика.",
+    searching: "Пошук розв’язку",
+    searchCancelled: "Пошук скасовано. Кубик та історія не змінилися.",
+    searchSolved: "Кубик уже складений. Ходи не потрібні.",
+    solutionCount: "Ходів до складання",
+    solutionMoves: "Ходи розв’язку в порядку виконання",
+    solutionHint: "Жодного ходу не застосовано. Анімоване відтворення ще недоступне. Новий поворот очищує цей результат. Півоберту рахується як один хід.",
+    searchInvalid: "Некоректний стан кубика.",
+    invalidCorner: "Запис деталі",
+    stateErrors: {
+      structure: "Дані стану неповні або мають неправильну структуру.",
+      "corner-count": "Стан має містити рівно вісім деталей.",
+      "piece-id": "Ідентифікатор деталі невідомий.",
+      "duplicate-piece": "Ідентифікатор деталі повторюється.",
+      slot: "Положення деталі некоректне.",
+      "duplicate-slot": "Кілька деталей займають одне положення.",
+      orientation: "Орієнтація деталі не є допустимим поворотом уздовж осей граней.",
+      pose: "Положення та орієнтація деталі не узгоджуються.",
+      "twist-sum": "Такого скручування кутів неможливо досягти допустимими поворотами.",
+    },
+    searchLimit: "Пошук зупинився до знаходження розв’язку. Це не означає, що стан неможливо скласти.",
+    searchLimits: { depth: "Досягнуто ліміту глибини ходів.", nodes: "Досягнуто ліміту вузлів пошуку.", time: "Досягнуто ліміту часу пошуку." },
+    searchError: "Не вдалося виконати пошук. Спробуйте ще раз. Ручні повороти залишаються доступними.",
+    searchTimeout: "Пошук не відповів вчасно. Спробуйте ще раз. Кубик та історія не змінилися.",
     sceneLoading: "Завантаження 3D-вигляду…",
     sceneFailed: "3D-вигляд недоступний",
     controlsTitle: "Виконайте поворот",
@@ -127,7 +205,7 @@ export const messages = {
     cubeEdge: "Ребро кубика",
     axisLayers: { x: "Шари по X", y: "Шари по Y", z: "Шари по Z" },
     millimeters: "мм",
-    stageNote: "Доступні ручні повороти, перемішування, історія та анімоване скасування. Пошук рішення ще не реалізовано. Перезавантаження скидає кубик та очищує історію.",
+    stageNote: "Доступні ручні повороти, перемішування, історія, анімоване скасування та пошук розв’язку. Анімоване відтворення розв’язку та введення з фото ще недоступні. Перезавантаження скидає кубик, історію та результат пошуку.",
     cubeTitle: "Дзеркальний кубик 2×2",
     cubeDescription: "Фіксований об’ємний ізометричний вигляд кубика. Під час повороту чотири підсвічені деталі обертаються разом, а решта чотири залишаються нерухомими.",
     sceneUnavailable: "Об’ємне відображення недоступне. Перевірте підтримку WebGL 2 та перезавантажте сторінку. Кнопки поворотів заблоковані; завершені ходи збережено, а незавершені й заплановані — не застосовано.",

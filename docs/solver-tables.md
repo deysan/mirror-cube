@@ -2,7 +2,7 @@
 
 ## Scope
 
-`src/solver/tables.ts` implements normalized move lookups and admissible lower bounds for the IDA* solver. It builds on the [validated coordinate encoding](state-encoding.md) and the existing exact `applyMove` rules. Search is implemented separately in [the search core](solver-search.md); workers, a solve button, and solution playback are not yet implemented.
+`src/solver/tables.ts` implements normalized move lookups and admissible lower bounds for the IDA* solver. It builds on the [validated coordinate encoding](state-encoding.md) and the existing exact `applyMove` rules. Search is implemented separately in [the search core](solver-search.md); worker integration and a solve button are described in the [worker guide](solver-worker.md). Animated solution playback is not yet implemented.
 
 Both input workflows use this same foundation: manually turn/scramble the virtual cube, or later reconstruct and confirm a physical state from photographs. Neither tables nor search require the input's move history.
 
@@ -20,7 +20,7 @@ const lowerBound = estimateRemainingMoves(tables, next); // 1, not 2
 const move = SOLVER_MOVES[0];
 ```
 
-`createSolverTables()` is explicit and synchronous. Importing the module does not generate tables. Each call returns independently owned buffers; there is no shared mutable singleton, persistent cache, downloaded asset, or new dependency. A future worker should create a set once and reuse it, rather than rebuilding for every search.
+`createSolverTables()` is explicit and synchronous. Importing the module does not generate tables. Each call returns independently owned buffers; there is no shared mutable singleton, persistent cache, downloaded asset, or new dependency. The solver worker creates a set once and reuses it across requests, rather than rebuilding for every search. Terminating a cancelled or failed worker discards that set.
 
 The nine columns have a stable order:
 
@@ -74,9 +74,9 @@ Do **not** add the factor distances: after one R turn, both are one, but a singl
 
 The four retained buffers total **109,611 bytes (about 107 KiB)**. This excludes object headers, temporary decoded/validated states, BFS queues, and garbage-collector overhead. Buffer properties are readonly in the interface, but JavaScript typed arrays remain mutable; callers must treat their contents as read-only after construction.
 
-A local five-run measurement on Node.js v24.19.0 took approximately **365–454 ms per construction**. This is an observation for the development machine, not a browser/mobile performance guarantee or a test threshold. Synchronous initialization can block the main thread and must not be silently triggered by rendering a component. Worker integration remains a later step before exposing the solve workflow.
+A local five-run measurement on Node.js v24.19.0 took approximately **365–454 ms per construction**. This is an observation for the development machine, not a browser/mobile performance guarantee or a test threshold. Synchronous initialization can block the main thread and must not be silently triggered by rendering a component. The implemented worker boundary keeps this initialization off the main thread.
 
-The current application does not import these tables, so its UI behavior and production graphics bundle are unchanged. No generated binary files are committed.
+Only the separate worker asset imports these tables at runtime; the main UI does not generate them. No generated binary table files are committed.
 
 ## Verification
 
@@ -93,4 +93,4 @@ The current application does not import these tables, so its UI behavior and pro
 
 The edge inequalities and descending-neighbor checks certify the shortest-distance labels without repeating the builder's BFS: edge bounds prevent overestimation and descending paths realize each label. Existing coordinate and domain tests remain in place. The table tests do not exhaustively traverse the full 3,674,160-state Cartesian graph. The separate search tests now do so with a test-only BFS oracle; it is not part of table construction.
 
-Run `npm test` and `npm run build`. There are no UI/rendering changes requiring a browser review. The search core is implemented; the next functional work is safe worker/UI integration, followed by animated solution playback.
+Run `npm test` and `npm run build`. The table module itself has no UI/rendering behavior. Search and worker/UI integration are implemented separately; animated solution playback remains the next functional step.

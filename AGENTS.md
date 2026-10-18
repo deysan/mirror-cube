@@ -47,6 +47,7 @@ Add meaningful tests alongside the relevant functionality:
 - solver table transitions agree with exact moves, and lower bounds do not overestimate solution length;
 - applying a returned solution actually solves the input state without requiring its move history;
 - completed searches match independent shortest-path checks, and cancellation/budget limits never return partial paths or claim unsolvability;
+- search/table construction stay in the worker, cancellation terminates active work, and obsolete worker/request/snapshot results cannot replace current results;
 - language switching updates user-facing text without changing puzzle state or solution progress.
 
 Run the checks available for the current stage. Report what was verified and what could not be verified; never claim that unrun tests passed.

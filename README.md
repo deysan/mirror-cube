@@ -10,7 +10,7 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data state validation, normalized compact coordinates, transition/distance tables, and a history-independent IDA* search core are also implemented, without changing the UI. Search verifies each result using exact domain moves and has cancellation/budget contracts. Solvedness is not yet connected to a UI badge. There is no worker integration, solve button, solution playback, redo, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data validation, compact coordinates, transition/distance tables, and IDA* search now power a worker-backed “Find solution” button. Search verifies each result with exact domain moves, supports cancellation and budgets, and displays bilingual results without changing the cube or history. An already-solved state is reported after search; there is no continuously updated solved badge. There is no animated solution playback, redo, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -93,7 +93,7 @@ Completed turns use only coordinate swaps and sign changes, not floating-point a
 
 A rigid rotation of the entire assembled cube is still solved: all 24 proper orientations are accepted. Reflections, individually twisted pieces, or mismatched positions are not. No bounding-box or approximate silhouette comparison is used. This is a logical identity-and-orientation goal, not a complete validity checker for imported states; `false` can also describe impossible input. Plain-data candidates can be checked with `validatePuzzleState`; raw photo reconstruction is still a separate future stage.
 
-The solver core uses IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation, coordinate encoding, tables, and pure search are implemented; worker/UI integration is not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
+The solver core uses IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation, coordinate encoding, tables, pure search, and worker/UI integration are implemented; animated solution playback is not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
 
 ### Validated solver input and compact coordinates
 
@@ -109,7 +109,7 @@ See [the state validation and encoding guide](docs/state-encoding.md) for the AP
 
 `src/solver/tables.ts` explicitly builds tables for the nine normalized R/U/F moves. `applyTableMove` performs compact-coordinate transitions, and `estimateRemainingMoves` returns the maximum of the exact permutation/twist distances. Adding those distances would overestimate the number of required turns.
 
-The retained typed-array buffers occupy 109,611 bytes (about 107 KiB). Construction is synchronous and not triggered on import or by the current UI. It will need to run in the future solver worker, with the table set reused across requests. See [the solver-table guide](docs/solver-tables.md) for layout, admissibility, local initialization measurements, and verification limits.
+The retained typed-array buffers occupy 109,611 bytes (about 107 KiB). Construction is synchronous but runs only inside the lazily created solver worker, not on the main thread or on import. A healthy worker reuses its table set across requests; cancellation or worker failure discards it. See [the solver-table guide](docs/solver-tables.md) for layout, admissibility, local initialization measurements, and verification limits.
 
 ### History-independent search core
 
@@ -117,7 +117,13 @@ The retained typed-array buffers occupy 109,611 bytes (about 107 KiB). Construct
 
 Default traversal limits are 11 moves, 5,000,000 visited nodes, and a cooperative 5-second time budget. The synchronous core must not be called directly from UI handlers; queued events cannot interrupt it. See [the search guide](docs/solver-search.md) for the API, polling contract, independent shortest-path checks, and local measurements. A test-only complete coordinate BFS covers all 3,674,160 states and confirms diameter 11; the application does not retain that full graph.
 
-The interface remains unchanged: “Ready to turn” is an interaction status, not a solved-state announcement. There is no “Find solution” button yet.
+### Worker-backed solve controls
+
+“Find solution” sends a snapshot of the current committed state to a dedicated Web Worker. Turns, undo, scrambling, and duplicate requests are blocked during search; language switching and “Cancel search” remain available. Cancellation terminates the worker, including table initialization, rather than queuing a message that synchronous search cannot process. A 15-second total-request watchdog also covers worker loading and initialization.
+
+The result panel distinguishes already solved, a numbered solution, invalid input, cancellation, search limits, and worker failure/timeout. The list uses execution order, notation, and localized face/direction descriptions. No moves are automatically applied or recorded. Starting a turn clears the old result immediately; request IDs, worker identity, and snapshot checks reject late/duplicate replies. Search failures do not disable manual turns.
+
+See [the worker/UI guide](docs/solver-worker.md) for lifecycle, retry costs, accessibility, and browser checks. “Ready to turn” remains an interaction status, not a solved-state announcement. Animated playback is the next separate stage.
 
 ## 3D view and manual turns
 
@@ -139,7 +145,7 @@ WebGL 2 is required. Initialization failure or context loss shows a localized fa
 
 See [the animated-turn guide](docs/animated-turns.md) for transaction flow, timing, safe framing, and verification. The measurements panel always describes the solved dimensions, not the current outer shape.
 
-Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 317 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
+Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 320 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
 
 ### History and undo
 
@@ -167,7 +173,8 @@ A sequence normally takes about 7–11 seconds. There are no speed, length, paus
 4. Perform R, U′, and F2, then undo three times. Each animation should remove only the latest entry after completion and restore the previous pose. Switch languages during undo: it must not restart or accept another command.
 5. Resize to desktop and mobile widths; the puzzle should stay in frame, including its protruding pieces. On small screens an offscreen canvas is brought into view when requesting a turn.
 6. Press “Scramble (12)”, switch languages during the sequence, and verify that twelve entries are appended without resetting earlier history. Undo those twelve moves to restore the pre-scramble pose.
-7. Run `npm run build` followed by `npm run preview` to check the production build locally.
+7. Press “Find solution” after the sequence. The move list should appear without changing the cube/history. Start another turn to clear it; try cancellation during a cold search and then retry. Switch languages during search and after completion.
+8. Run `npm run build` followed by `npm run preview` to check the production build locally.
 
 `src/rendering/pieceTransform.test.ts` checks actual Three.js box vertices and bounds against the puzzle model, including mixed poses, rotations around the split intersection, absence of scaling/reflection, and a one-millimeter dimension difference. Browser/WebGL checks are currently manual, not a committed end-to-end test suite.
 
@@ -193,7 +200,7 @@ The default is English. Language selection is not persisted or inferred from bro
 3. Inspect the document's language and title, and the scene's accessible name/description, in both languages.
 4. Check both languages at narrow widths; longer Ukrainian text should wrap without horizontal overflow.
 
-`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. Only `CubeScene` is mocked because jsdom cannot render WebGL; these tests do not claim to test GPU output. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes, atomic history updates, and the exactly-once completion contract. Undo tests cover all 18 face/angle combinations, failure during undo, new moves after undo, and exact restoration of every snapshot in a 100-move sequence. Scramble checks cover seeded reproducibility, legal walks, exactly-once sequential commits, replay from recorded history, undo back to the pre-scramble state, and failure with a queued remainder. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
+`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. `CubeScene` is mocked because jsdom cannot render WebGL, and solve UI tests use a controlled worker stub; these tests do not claim GPU output or native worker scheduling. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes, atomic history updates, and the exactly-once completion contract. Undo tests cover all 18 face/angle combinations, failure during undo, new moves after undo, and exact restoration of every snapshot in a 100-move sequence. Scramble checks cover seeded reproducibility, legal walks, exactly-once sequential commits, replay from recorded history, undo back to the pre-scramble state, and failure with a queued remainder. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
 
 ## Documentation
 
@@ -204,6 +211,7 @@ The default is English. Language selection is not persisted or inferred from bro
 - [State validation and solver coordinates](docs/state-encoding.md)
 - [Solver transitions and distance tables](docs/solver-tables.md)
 - [History-independent IDA* search](docs/solver-search.md)
+- [Worker-backed solution search](docs/solver-worker.md)
 - [Animated manual turns](docs/animated-turns.md)
 - [Coding agent instructions](AGENTS.md)
 

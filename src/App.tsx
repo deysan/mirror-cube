@@ -2,6 +2,9 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { CubeView } from "./components/CubeView";
 import { MoveControls } from "./components/MoveControls";
 import { MoveHistory } from "./components/MoveHistory";
+import { SolutionPanel } from "./components/SolutionPanel";
+import { useSolverWorker } from "./interaction/useSolverWorker";
+import type { SolverResponse } from "./solver/workerProtocol";
 import { createTurnSession, turnSessionReducer } from "./interaction/turnSession";
 import type { Move } from "./puzzle/moves";
 import { LANGUAGES, messages, type Language } from "./i18n/messages";
@@ -45,7 +48,11 @@ export function App() {
     dispatch({ type: "scramble", moves: createScramble() });
     showCanvas();
   }, [showCanvas]);
-  const controlsDisabled = session.sceneStatus !== "ready" || session.activeTurn !== null;
+  const onFind = useCallback(() => dispatch({ type: "find-solution" }), []);
+  const onCancelSearch = useCallback(() => dispatch({ type: "cancel-search" }), []);
+  const onSearchResult = useCallback((response: SolverResponse) => dispatch({ type: "search-result", response }), []);
+  useSolverWorker(session.search.status === "running" ? session.search.request : null, onSearchResult);
+  const controlsDisabled = session.sceneStatus !== "ready" || session.activeTurn !== null || session.search.status === "running";
   const move = session.activeTurn?.move;
   const turnLabel = session.scramble
     ? `${text.scrambling} ${session.scramble.completed + 1}/${session.scramble.moves.length}`
@@ -53,6 +60,7 @@ export function App() {
   const status = session.sceneStatus === "failed" ? text.sceneFailed
     : session.sceneStatus === "loading" ? text.sceneLoading
     : move ? `${turnLabel}: ${move.face} · ${text.faceNames[move.face]} · ${text.turnOptions[move.turns]}`
+    : session.search.status === "running" ? text.searching
     : text.readyToTurn;
 
   useEffect(() => {
@@ -112,6 +120,13 @@ export function App() {
             disabled={controlsDisabled}
             onMove={onMove}
             onScramble={onScramble}
+          />
+          <SolutionPanel
+            text={text}
+            search={session.search}
+            disabled={controlsDisabled}
+            onFind={onFind}
+            onCancel={onCancelSearch}
           />
           <MoveHistory
             text={text}

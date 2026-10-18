@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). The synchronous IDA* search core is implemented; see [the search guide](solver-search.md) for its results, limits, cancellation contract, and measurements. Worker/UI integration and solution playback are **not implemented yet**. This document records the design and required checks; it is not permission to start all following stages.
+`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). The synchronous IDA* search core is implemented; see [the search guide](solver-search.md) for its results, limits, cancellation contract, and measurements. [Worker/UI integration](solver-worker.md) is implemented, including real worker termination and stale-result protection. Animated solution playback is **not implemented yet**. This document records the design and required checks; it is not permission to start all following stages.
 
 Input comes from manual turns/scrambling of the virtual cube or, in a later stage, photographs of a physical puzzle. Both are supported workflows using the same state-based solver. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
 
@@ -47,7 +47,7 @@ For custom parameter sets with indistinguishable or symmetric piece shapes, this
 
 The 24 rotations refer to **face-aligned puzzle coordinates**, not the continuous camera pose of a photograph. Photo reconstruction must separate camera/puzzle-frame estimation from discrete piece slots and orientations. Floating-point camera transforms do not belong in the goal predicate.
 
-The UI is unchanged in this stage. Its “Ready to turn” message still reports interaction readiness, not solvedness.
+The original predicate stage did not change the UI. “Ready to turn” still reports interaction readiness, not solvedness; the solve panel now separately reports an already-solved search result.
 
 ## Selected search direction: IDA*
 
@@ -67,7 +67,7 @@ This gives `7! × 3^6 = 3,674,160` legal states modulo whole-cube rotation. The 
 
 ### Implemented lower bounds and pruning
 
-`createSolverTables` builds transition tables through the exact domain moves and breadth-first distances separately for the permutation and twist coordinates. `estimateRemainingMoves` uses the **maximum**, not the sum, of those distances: one physical turn can improve both coordinates, so summing may overestimate. Construction is explicit and synchronous; it is not triggered by the current UI.
+`createSolverTables` builds transition tables through the exact domain moves and breadth-first distances separately for the permutation and twist coordinates. `estimateRemainingMoves` uses the **maximum**, not the sum, of those distances: one physical turn can improve both coordinates, so summing may overestimate. Construction is explicit and synchronous inside the dedicated worker; it never runs in a render callback or on the main UI thread.
 
 Search prunes consecutive turns of the same face, since they can be combined into one supported turn or canceled. Add other pruning only with correctness tests. Table generation and the transition encoding must agree with the existing exact move model.
 
@@ -80,7 +80,8 @@ Implement in small stages:
 1. **Implemented:** input validation, reference-frame normalization, compact coordinates, and move mapping, with round-trip and move-equivalence tests.
 2. **Implemented:** transition/distance tables, projection checks, shortest-distance certificates, and independent depth-four full-state checks.
 3. **Implemented:** the pure IDA* search engine, with exact result replay, limits/cancellation, independent full-pose shortest-path checks, and sampled comparisons to a complete coordinate-graph BFS oracle.
-4. **Next:** browser worker integration, actual event-loop-aware cancellation/stale-result protection, and bilingual result handling before animated solution playback.
+4. **Implemented:** browser worker integration, termination-based cancellation/stale-result protection, and bilingual result handling.
+5. **Next:** animated solution playback with snapshot-bound progress and exactly-once move commits.
 
 The worker should receive a puzzle-state snapshot, not React state or history. Applying a result must be tied to the snapshot that was searched. Do not block the main thread with an unbounded search or apply a late result to a changed puzzle.
 
@@ -107,4 +108,4 @@ No empty solver/worker modules, external solver libraries, image models, or netw
 
 `src/solver/search.test.ts` checks returned solutions, all global frames, shortest lengths against full-pose and coordinate BFS oracles, snapshot ownership, and validation/cancellation/budget contracts. The complete coordinate graph is traversed only by the test oracle, not by application initialization. See the search guide for coverage and limits.
 
-Run `npm test` and `npm run build`. There are no UI or renderer changes to visually verify in this stage.
+Run `npm test` and `npm run build`. The original domain stages had no UI or renderer changes. Subsequent worker/UI browser checks are documented in the worker guide.

@@ -83,7 +83,7 @@ Completion criteria:
 - language switching preserves the sequence, progress, and animation;
 - automated tests, type checking, production build, and browser checks pass.
 
-Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No pause/cancel, adjustable scramble length/speed, redo, solve UI, or solution playback. Reload resets the session. This stage is committed locally.
+Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No scramble pause/cancel, adjustable scramble length/speed, redo, or solution playback. Reload resets the session. This stage is committed locally.
 
 ## Completed stage: exact solvedness and solver design
 
@@ -100,7 +100,7 @@ Completion criteria:
 - tests, type checking, and the production build pass;
 - the solver plan serves photo-derived states without relying on their generating moves.
 
-The predicate remains separate from input validation and is not connected to the UI. This stage is committed locally.
+The predicate remains separate from input validation. The original stage had no UI changes; the later solve panel now reports already-solved search results. This stage is committed locally.
 
 ## Completed stage: input validation and compact solver coordinates
 
@@ -134,7 +134,7 @@ Completion criteria:
 
 Limitations of this stage: synchronous construction is not integrated into a worker, and no search or solve button was added. Full-pose table tests are bounded, and local initialization measurements are not browser performance guarantees. Pure search was implemented in the following stage.
 
-## Current stage: pure IDA* search
+## Completed stage: pure IDA* search
 
 `src/solver/search.ts` searches a validated snapshot without move history, using the existing compact tables and max-distance heuristic. It maps a shortest face-turn sequence back to the input frame and verifies it with exact domain moves and solvedness. See the [search guide](solver-search.md).
 
@@ -148,7 +148,24 @@ Completion criteria:
 - frozen inputs and table contents remain unchanged, and no history or partial-path fallback is used;
 - tests, type checking, and production build pass; local timing observations are recorded without device-performance guarantees.
 
-Limitations: the API is synchronous; its cancellation hook cannot receive queued events during traversal. Worker interruption and stale-result safety are not implemented yet. No solve button, UI text, playback, recognition, dependencies, or generated assets are added.
+Limitations of the core stage: the API is synchronous; its cancellation hook cannot receive queued events during traversal. Worker interruption, stale-result safety, and solve UI were added in the following stage. Playback and recognition remain deferred.
+
+## Current stage: worker-backed solution search
+
+A lazy dedicated worker builds and reuses tables and searches a committed snapshot. The bilingual solution panel offers search/cancel and displays verified moves without applying them. Worker/request/snapshot guards reject obsolete results; cancellation terminates active work. See the [worker/UI guide](solver-worker.md).
+
+Completion criteria:
+
+- search and table initialization run outside the main thread, with a separate built worker asset;
+- solve requests never overlap turns/scrambling, and manual controls remain locked for a pending request;
+- results do not mutate the puzzle or history and are cleared when a new turn starts;
+- language switching preserves requests, results, and worker identity;
+- cancellation, scene failure, unmount, and request timeout release pending resources;
+- worker failures have a localized retry path without disabling manual turns;
+- duplicate/late responses cannot replace the current result, including after cancellation/retry;
+- automated tests, type checking, production build, and real-worker browser checks pass.
+
+Limitations: animated solution playback and photo input are not implemented. Cancelled/failed workers lose their tables; retry rebuilds them. Search budgets are fixed in the UI; no progress percentages or automatic retries are added. Browser background throttling can delay the watchdog.
 
 ## Agreed rendering direction and deployment order
 
@@ -156,7 +173,7 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is safe worker/UI integration for finding solutions from the current state, followed by bilingual animated solution playback. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is bilingual animated solution playback using the verified sequence, snapshot-bound progress, and the existing exactly-once animation completion contract. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Final functional goal: two inputs, one solving workflow
 
@@ -176,14 +193,14 @@ The solver must accept a validated discrete state without move history; recognit
 | 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
-| 9. Solution search | Goal check, validation/encoding, tables, and IDA* (implemented), then worker/UI integration | Applying the returned sequence solves a valid input state without access to its generating moves |
+| 9. Solution search | Goal check, validation/encoding, tables, IDA*, and safe worker/UI integration (implemented) | Applying the returned sequence solves a valid input state without access to its generating moves |
 | 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
 | 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
 | 12. Deployment | Publish both input-to-solution workflows on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
 Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Verify that language switching preserves solution progress when playback is implemented.
 
-Reversing move history must not be presented as a general solution-search algorithm. The IDA* core is implemented and has local measurements; worker responsiveness and end-to-end solution playback still need their own implementation and verification stages.
+Reversing move history must not be presented as a general solution-search algorithm. The IDA* core and worker/UI integration are implemented and locally verified; end-to-end animated solution playback still needs its own implementation and verification stage.
 
 ## Completed model stage: scope and checks
 
