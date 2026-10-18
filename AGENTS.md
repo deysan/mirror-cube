@@ -42,6 +42,8 @@ Add meaningful tests alongside the relevant functionality:
 - four quarter-turns restore the state;
 - turns preserve piece identities and local dimensions;
 - animation endpoints match exact move geometry, and duplicate/stale completion callbacks cannot commit twice;
+- state validation rejects impossible corner twists but accepts legal odd permutations on a 2×2;
+- solver encoding preserves exact poses through round-trips and maps moves correctly through all global frames;
 - applying a returned solution actually solves the input state without requiring its move history;
 - language switching updates user-facing text without changing puzzle state or solution progress.
 

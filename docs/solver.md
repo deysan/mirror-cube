@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-`src/puzzle/solved.ts` implements exact solved-state detection. Solution search, state import/reachability validation, compact solver coordinates, and worker/UI integration are **not implemented yet**. This document selects the search direction and its required checks; it is not an implementation claim or permission to start all following stages.
+`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Solution search, transition/distance tables, and worker/UI integration are **not implemented yet**. This document selects the search direction and its required checks; it is not an implementation claim or permission to start all following stages.
 
 The final input will come from photographs of a physical puzzle. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
 
@@ -43,7 +43,7 @@ For custom parameter sets with indistinguishable or symmetric piece shapes, this
 
 ### What this predicate does not validate
 
-`isSolved` is not an arbitrary JSON parser or a complete physical-reachability validator. It rejects structurally typed states that fail the solved conditions, including missing/duplicate/unknown IDs or invalid rotations, but `false` does not distinguish a legal unsolved state from an impossible state. Untrusted or incomplete photo input must be parsed and validated separately before search.
+`isSolved` is not an arbitrary JSON parser or a complete physical-reachability validator. It rejects structurally typed states that fail the solved conditions, including missing/duplicate/unknown IDs or invalid rotations, but `false` does not distinguish a legal unsolved state from an impossible state. Untrusted or incomplete photo input must be parsed and validated separately before search. `validatePuzzleState` now provides that plain-data boundary for the discrete state shape, without recognizing images or repairing uncertain input.
 
 The 24 rotations refer to **face-aligned puzzle coordinates**, not the continuous camera pose of a photograph. Photo reconstruction must separate camera/puzzle-frame estimation from discrete piece slots and orientations. Floating-point camera transforms do not belong in the goal predicate.
 
@@ -55,15 +55,15 @@ Use iterative-deepening A* (IDA*) over compact corner coordinates. It searches w
 
 All quarter-turns and half-turns count as one move (face-turn metric). A completed search with admissible heuristics and sound pruning can return a shortest sequence in that metric; this does not imply minimum quarter-turn count or shortest animation time. Runtime and memory usage still need measurement before making responsiveness guarantees.
 
-### Planned normalization and coordinates
+### Normalization and coordinates
 
 1. Validate the input's identities, slots, proper orientations, pose consistency, and corner-twist constraint. Do not reject odd corner permutations: a legal quarter-turn is itself an odd permutation of four corners on a 2×2.
 2. Use piece `---` as a reference corner. Mathematically rotate the input frame by the inverse of that corner's orientation, putting it at its home slot with identity orientation. This is a coordinate change, not a physical move or an animation.
 3. Encode the remaining seven-corner permutation (`7! = 5,040` possibilities) and six independent corner twists (`3^6 = 729` possibilities); the remaining twist follows from the twist-sum constraint.
-4. Search using R, U, and F with all three angles in this normalized frame. These faces do not move the reference corner. Opposite-face turns are equivalent to inverse turns of the other layer up to a whole-cube rotation, consistent with the goal's global-rotation equivalence.
+4. Future search will use R, U, and F with all three angles in this normalized frame. These faces do not move the reference corner. Opposite-face turns are equivalent to inverse turns of the other layer up to a whole-cube rotation, consistent with the goal's global-rotation equivalence.
 5. Map the resulting face normals back to the original puzzle frame using the saved reference orientation. Preserve the outside-looking-in turn convention. The caller should receive ordinary `Move` values usable by `applyMove` and the existing renderer, not instructions tied to the normalization frame.
 
-This gives `7! × 3^6 = 3,674,160` legal states modulo whole-cube rotation. A correct, tested corner-twist convention and a bijective encoder/decoder are prerequisites; do not infer twist from a single axis without accounting for slot orientation.
+This gives `7! × 3^6 = 3,674,160` legal states modulo whole-cube rotation. The implemented corner-twist convention, validation, encoder/decoder, and frame-to-world move mapping are detailed in the [state-encoding guide](state-encoding.md). Twist uses a consistent cyclic ordering of outward normals, not a naive single-axis label.
 
 ### Planned lower bounds and pruning
 
@@ -77,9 +77,9 @@ Do not use reversed history as a fallback solver or call a search limit “unsol
 
 Implement in small stages:
 
-1. Input validation, reference-frame normalization, and compact coordinates, with round-trip and move-equivalence tests.
-2. Heuristic tables and the pure search engine, with independently verified solutions and small-depth shortest-path checks.
-3. Browser worker integration, cancellation/stale-result protection, and bilingual result handling before animated solution playback.
+1. **Implemented:** input validation, reference-frame normalization, compact coordinates, and move mapping, with round-trip and move-equivalence tests.
+2. **Next:** heuristic/transition tables and the pure search engine, with independently verified solutions and small-depth shortest-path checks.
+3. **Later:** browser worker integration, cancellation/stale-result protection, and bilingual result handling before animated solution playback.
 
 The worker should receive a puzzle-state snapshot, not React state or history. Applying a result must be tied to the snapshot that was searched. Do not block the main thread with an unbounded search or apply a late result to a changed puzzle.
 
@@ -99,5 +99,7 @@ No empty solver/worker modules, external solver libraries, image models, or netw
 - non-exact, non-finite, repeated-axis, and scaled orientations rejected;
 - agreement with an explicit 24-goal oracle throughout a mixed legal walk;
 - close dimensions, reordered/deserialized states, and frozen-input non-mutation.
+
+`src/puzzle/validation.test.ts` and `src/solver/coordinates.test.ts` additionally verify reachability constraints, clean snapshots, all coordinate-factor ranges, history-free round-trips, and move equivalence through all global frames. See the state-encoding guide for coverage and limits.
 
 Run `npm test` and `npm run build`. There are no UI or renderer changes to visually verify in this stage.

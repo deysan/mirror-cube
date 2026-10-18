@@ -10,7 +10,7 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. It is not yet connected to a UI badge. There is no redo, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data state validation and normalized compact solver coordinates are also implemented, without changing the UI. Solvedness is not yet connected to a UI badge. There is no redo, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -74,7 +74,7 @@ Parameters must be safe integers in whole millimeters. Edge length must be posit
 
 The default dimensions yield eight distinct shapes. Custom parameters are checked for valid off-center splits, but are not required to produce eight shapes distinguishable under rotation.
 
-The model uses ideal rectangular pieces without bevels, gaps, or an internal mechanism. This definition describes the solved geometry; current poses and move rules live in separate modules. `isSolved` checks discrete poses against the exact solved arrangement; full input/reachability validation is not implemented yet. Data is exposed through TypeScript `readonly` types, not runtime freezing.
+The model uses ideal rectangular pieces without bevels, gaps, or an internal mechanism. This definition describes the solved geometry; current poses and move rules live in separate modules. `isSolved` checks discrete poses against the exact solved arrangement; `validatePuzzleState` separately checks plain-data structure and reachability for this corner model. Data is exposed through TypeScript `readonly` types, not runtime freezing.
 
 `src/puzzle/model.test.ts` checks piece identities, exact dimensions, containment, pairwise non-overlap, total volume, one-millimeter differences, input independence, and parameter validation. Containment, non-overlap, and equal total volume together verify that the pieces fill the cube without gaps.
 
@@ -91,9 +91,19 @@ Completed turns use only coordinate swaps and sign changes, not floating-point a
 
 `src/puzzle/solved.ts` exports `isSolved(state)`. It requires all eight distinct piece identities, a common proper signed-axis orientation, and each slot equal to that common rotation applied to the piece's home slot. The result is independent of array order, dimensions, camera, language, and move history.
 
-A rigid rotation of the entire assembled cube is still solved: all 24 proper orientations are accepted. Reflections, individually twisted pieces, or mismatched positions are not. No bounding-box or approximate silhouette comparison is used. This is a logical identity-and-orientation goal, not a complete validity checker for imported states; `false` can also describe impossible input. Arbitrary photo/JSON data will need separate parsing and validation.
+A rigid rotation of the entire assembled cube is still solved: all 24 proper orientations are accepted. Reflections, individually twisted pieces, or mismatched positions are not. No bounding-box or approximate silhouette comparison is used. This is a logical identity-and-orientation goal, not a complete validity checker for imported states; `false` can also describe impossible input. Plain-data candidates can be checked with `validatePuzzleState`; raw photo reconstruction is still a separate future stage.
 
-The planned solver is IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation and coordinate encoding are the next prerequisites; search and worker integration are not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
+The planned solver is IDA* with compact corner-permutation/twist coordinates and small admissible distance tables, independent of history. Validation and coordinate encoding are implemented; transition/distance tables, search, and worker integration are not implemented yet. See [the solvedness and solver design](docs/solver.md) for the goal contract, global-frame normalization, algorithm choice, and verification plan.
+
+### Validated solver input and compact coordinates
+
+- `src/puzzle/validation.ts` exports `validatePuzzleState(candidate: unknown)`. It checks eight distinct identities/slots, proper orientations, pose consistency, and total corner twist. A 2×2 permits odd permutations; there is no 3×3-style edge parity constraint. Success returns a copied, canonically ordered state; failure returns a language-independent diagnostic code.
+- `src/puzzle/corners.ts` defines the canonical order and a slot-aware cyclic corner-twist convention. `src/puzzle/orientation.ts` shares exact rotation math with solvedness.
+- `src/solver/coordinates.ts` exports `encodeState`, `decodeState`, and `mapMoveFromFrame`. Encoding validates first, normalizes around piece `---`, and returns permutation/twist ranks plus the frame needed to recover the original pose.
+
+There are 5,040 permutation ranks and 729 twist ranks. `{ permutation: 0, twist: 0 }` is solved in the normalized frame. All 24 global rotations share coordinates, but the saved frame preserves the original physical orientation and maps future solution moves back to the correct faces. No generating move sequence is required or retained.
+
+See [the state validation and encoding guide](docs/state-encoding.md) for the API, exact twist convention, error codes, and verification. This is a solver input boundary, not a photo importer or search engine.
 
 The interface remains unchanged: “Ready to turn” is an interaction status, not a solved-state announcement.
 
@@ -179,6 +189,7 @@ The default is English. Language selection is not persisted or inferred from bro
 - [Incremental development roadmap](docs/roadmap.md)
 - [Discrete state and move rules](docs/moves.md)
 - [Exact solvedness and solver design](docs/solver.md)
+- [State validation and solver coordinates](docs/state-encoding.md)
 - [Animated manual turns](docs/animated-turns.md)
 - [Coding agent instructions](AGENTS.md)
 

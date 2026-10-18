@@ -85,11 +85,11 @@ Completion criteria:
 
 Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No pause/cancel, adjustable scramble length/speed, redo, solver, or solution playback. Reload resets the session. This stage is committed locally.
 
-## Current stage: exact solvedness and solver design
+## Completed stage: exact solvedness and solver design
 
 `src/puzzle/solved.ts` checks exact piece identities, orientations, and slots up to a common proper whole-cube rotation. It accepts all 24 discrete global orientations without reading move history or estimating a silhouette. The interface and rendering are unchanged.
 
-The [solver design](solver.md) selects IDA* over normalized corner permutation/twist coordinates with admissible distance-table heuristics. It specifies validation, reference-frame normalization, move mapping back to the physical frame, and independent solution verification. Search, coordinates, and worker integration are not implemented yet.
+The [solver design](solver.md) selects IDA* over normalized corner permutation/twist coordinates with admissible distance-table heuristics. It specifies validation, reference-frame normalization, move mapping back to the physical frame, and independent solution verification. This stage established the exact goal predicate and selected the search direction; validation and coordinates were implemented afterward.
 
 Completion criteria:
 
@@ -100,7 +100,24 @@ Completion criteria:
 - tests, type checking, and the production build pass;
 - the solver plan serves photo-derived states without relying on their generating moves.
 
-Limitations: the predicate is not an arbitrary-input parser or complete reachability validator, and is not connected to the UI. There is no search engine yet.
+The predicate remains separate from input validation and is not connected to the UI. This stage is committed locally.
+
+## Current stage: input validation and compact solver coordinates
+
+The plain-data validator checks structure, identities, slot occupancy, proper rotations, pose consistency, and total corner twist. The codec normalizes around piece `---`, encodes seven-corner permutation and six independent twists, and preserves the frame for exact decoding and move mapping. See the [state-encoding guide](state-encoding.md).
+
+Completion criteria:
+
+- malformed or physically unreachable corner states are rejected with diagnostic codes;
+- balanced twists and odd corner permutations are accepted;
+- valid input becomes an independent, canonically ordered snapshot without using history;
+- normalization is invariant under all 24 global frames and preserves the original frame for reconstruction;
+- all permutation and twist coordinate factors round-trip without collisions;
+- decoded states preserve every piece identity, slot, and orientation;
+- mapped moves agree with the existing exact rules, including negative world faces;
+- previous tests, type checking, and production build pass.
+
+Limitations: no recognition, import UI, transition/distance tables, search, or worker integration. The codec is internal, not a versioned interchange format; the full Cartesian state space is not exhaustively traversed by tests.
 
 ## Agreed rendering direction and deployment order
 
@@ -108,7 +125,7 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is solver input validation and compact corner-state encoding, followed by heuristic tables and IDA* search. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is normalized move-transition and admissible distance tables, followed by IDA* search. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Final functional goal: photos to a solution
 
@@ -128,7 +145,7 @@ The solver must accept a validated discrete state without move history; recognit
 | 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
-| 9. Solution search | Exact goal check (implemented), then validation/encoding, IDA*, and worker integration in separate stages | Applying the returned sequence solves a valid input state without access to its generating moves |
+| 9. Solution search | Exact goal check and validation/encoding (implemented), then tables, IDA*, and worker integration in separate stages | Applying the returned sequence solves a valid input state without access to its generating moves |
 | 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
 | 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
 | 12. Deployment | Publish the photo-to-solution workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
