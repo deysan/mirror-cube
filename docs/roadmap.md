@@ -50,7 +50,7 @@ Completion criteria:
 
 The manual-turn stage is committed locally. Its fixed camera and larger graphics bundle remain unchanged; Vite's bundle-size warning is not suppressed.
 
-## Current stage: history and animated undo
+## Completed stage: history and animated undo
 
 Completed manual moves enter a chronological history. The bilingual list shows the newest entries first with notation and full move descriptions. Undo animates the inverse of the final entry through the existing scene and completion contract; no rendering or domain dependencies were added.
 
@@ -65,7 +65,25 @@ Completion criteria:
 - long lists remain bounded and keyboard-scrollable;
 - automated tests, type checking, production build, and browser checks pass.
 
-Limitations: no redo, history navigation, automatic scrambling, solved-state detector, solver, or playback. Reload resets the puzzle and clears history. Undo is not a general solution-search algorithm.
+The history/undo stage is committed locally. Undo remains a reversal of recorded moves, not a general solution-search algorithm.
+
+## Current stage: animated scrambling
+
+A separate generator creates twelve legal turns with different axes on adjacent moves. The session animates them sequentially from the current state (initially solved), preserving previous history rather than silently resetting it. Each completion commits one move and schedules the next atomically.
+
+Completion criteria:
+
+- injected RNGs produce reproducible valid sequences without retry loops;
+- the renderer animates each turn through the existing completion contract;
+- controls stay locked for the entire sequence, including between turns;
+- exactly the completed prefix is applied and recorded, even on failure;
+- duplicate/stale completions cannot skip or repeat sequence steps;
+- recorded history replays to the same exact state;
+- undo restores the pre-scramble state, and repeated scrambling preserves history;
+- language switching preserves the sequence, progress, and animation;
+- automated tests, type checking, production build, and browser checks pass.
+
+Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No pause/cancel, adjustable scramble length/speed, redo, solved-state detector, solver, or solution playback. Reload resets the session.
 
 ## Agreed rendering direction and deployment order
 
@@ -73,7 +91,7 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is animated scrambling with a recorded legal move sequence. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is exact solved-state detection and solver design, followed by an independent solution-search implementation. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Stage sequence
 
@@ -86,7 +104,7 @@ The next proposed stage is animated scrambling with a recorded legal move sequen
 | 5. Static Three.js scene | Replace SVG with a React Three Fiber scene using the model | Correct piece dimensions, placement, and depth; bilingual UI still works |
 | 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
-| 8. Scrambling | A sequence of legal moves from the solved state | Replaying the recorded sequence reproduces the state |
+| 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
 | 9. Solution search | An algorithm independent of UI | Applying the returned sequence solves the input state |
 | 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
 | 11. Deployment | Publish the solving workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |

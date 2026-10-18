@@ -33,7 +33,7 @@ Repository documentation is maintained in English. Ukrainian user-facing transla
 - A geometrically correct 2×2 Mirror Cube model.
 - A 3D view and animated turns.
 - Face-turn controls.
-- Scrambling from the solved state.
+- Animated scrambling from the current state, which is initially solved. Repeated scrambling preserves existing history rather than resetting the puzzle.
 - Move history and undo for the latest turn.
 - Solution search from the current state.
 - Step-by-step solution playback with highlighted moving pieces.

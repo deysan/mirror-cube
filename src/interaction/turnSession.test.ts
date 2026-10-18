@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createSolvedCube } from "../puzzle/model";
 import { applyMove, inverseMove, type Move } from "../puzzle/moves";
+import { createScramble } from "../puzzle/scramble";
 import { createSolvedState } from "../puzzle/state";
 import { createTurnSession, turnSessionReducer, type TurnSession } from "./turnSession";
 
@@ -17,6 +18,86 @@ function finish(session: TurnSession) {
 const allMoves = (["U", "D", "L", "R", "F", "B"] as const).flatMap((face) =>
   ([1, -1, 2] as const).map((turns) => ({ face, turns })),
 );
+
+describe("scramble transaction", () => {
+  const sequence = createScramble(() => 0.4);
+  const scramble = { type: "scramble", moves: sequence } as const;
+
+  it("rejects empty sequences, unavailable scenes, and starts during manual/undo animations", () => {
+    expect(turnSessionReducer(ready, { type: "scramble", moves: [] })).toBe(ready);
+    expect(turnSessionReducer(loading, scramble)).toBe(loading);
+    const failed = turnSessionReducer(ready, { type: "scene-failed" });
+    expect(turnSessionReducer(failed, scramble)).toBe(failed);
+    const manual = turnSessionReducer(ready, start);
+    expect(turnSessionReducer(manual, scramble)).toBe(manual);
+    const undo = turnSessionReducer(finish(manual), { type: "undo" });
+    expect(turnSessionReducer(undo, scramble)).toBe(undo);
+  });
+
+  it("runs one move at a time, records each completion once, and never unlocks between moves", () => {
+    const prior = finish(turnSessionReducer(ready, start));
+    let session = turnSessionReducer(prior, scramble);
+    expect(session.puzzle).toBe(prior.puzzle);
+    expect(session.history).toBe(prior.history);
+    expect(session.scramble?.moves).toEqual(sequence);
+    expect(session.scramble?.moves).not.toBe(sequence);
+    const ids = new Set<number>();
+    for (const [index, next] of sequence.entries()) {
+      expect(session.activeTurn?.move).toEqual(next);
+      expect(session.activeTurn?.kind).toBe("scramble");
+      expect(session.scramble?.completed).toBe(index);
+      expect(session.history).toEqual([...prior.history, ...sequence.slice(0, index)]);
+      expect(turnSessionReducer(session, start)).toBe(session);
+      expect(turnSessionReducer(session, { type: "undo" })).toBe(session);
+      expect(turnSessionReducer(session, scramble)).toBe(session);
+      const id = session.activeTurn!.id;
+      expect(ids.has(id)).toBe(false);
+      ids.add(id);
+      expect(turnSessionReducer(session, { type: "complete", id: id - 1 })).toBe(session);
+      session = finish(session);
+      expect(turnSessionReducer(session, { type: "complete", id })).toBe(session);
+      expect(session.puzzle).toEqual(sequence.slice(0, index + 1).reduce(applyMove, prior.puzzle));
+      expect(session.history.reduce(applyMove, initial)).toEqual(session.puzzle);
+    }
+    expect(session.activeTurn).toBeNull();
+    expect(session.scramble).toBeNull();
+    for (let index = 0; index < sequence.length; index++) {
+      session = finish(turnSessionReducer(session, { type: "undo" }));
+    }
+    expect(session.puzzle).toEqual(prior.puzzle);
+    expect(session.history).toEqual(prior.history);
+  });
+
+  it.each([0, 1, 11])("failure after %s completions discards only unfinished and queued turns", (count) => {
+    let session = turnSessionReducer(ready, scramble);
+    for (let index = 0; index < count; index++) session = finish(session);
+    const id = session.activeTurn!.id;
+    const failed = turnSessionReducer(session, { type: "scene-failed" });
+    expect(failed.puzzle).toBe(session.puzzle);
+    expect(failed.history).toBe(session.history);
+    expect(failed.history).toEqual(sequence.slice(0, count));
+    expect(failed.scramble).toBeNull();
+    expect(failed.activeTurn).toBeNull();
+    expect(turnSessionReducer(failed, { type: "complete", id })).toBe(failed);
+    expect(turnSessionReducer(failed, scramble)).toBe(failed);
+    expect(turnSessionReducer(failed, { type: "scene-ready" })).toBe(failed);
+  });
+
+  it("continues from the current state on repeated scrambling, including single-move sequences", () => {
+    let session = ready;
+    for (let repeat = 0; repeat < 2; repeat++) {
+      session = turnSessionReducer(session, scramble);
+      while (session.activeTurn) session = finish(session);
+    }
+    expect(session.history).toEqual([...sequence, ...sequence]);
+    expect(session.puzzle).toEqual(session.history.reduce(applyMove, initial));
+    const single = finish(turnSessionReducer(session, { type: "scramble", moves: [move] }));
+    expect(single.scramble).toBeNull();
+    expect(single.activeTurn).toBeNull();
+    expect(single.puzzle).toEqual(applyMove(session.puzzle, move));
+    expect(single.history).toEqual([...session.history, move]);
+  });
+});
 
 describe("history and animated undo", () => {
   it("records only completed moves, without combining or canceling adjacent entries", () => {

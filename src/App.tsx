@@ -7,6 +7,7 @@ import type { Move } from "./puzzle/moves";
 import { LANGUAGES, messages, type Language } from "./i18n/messages";
 import { createSolvedCube } from "./puzzle/model";
 import { createSolvedState } from "./puzzle/state";
+import { createScramble } from "./puzzle/scramble";
 
 const axes = ["x", "y", "z"] as const;
 
@@ -39,9 +40,16 @@ export function App() {
     dispatch({ type: "undo" });
     showCanvas();
   }, [showCanvas]);
+  const onScramble = useCallback(() => {
+    // Sample once in the event handler, not in a reducer or an effect.
+    dispatch({ type: "scramble", moves: createScramble() });
+    showCanvas();
+  }, [showCanvas]);
   const controlsDisabled = session.sceneStatus !== "ready" || session.activeTurn !== null;
   const move = session.activeTurn?.move;
-  const turnLabel = session.activeTurn?.kind === "undo" ? text.undoing : text.turning;
+  const turnLabel = session.scramble
+    ? `${text.scrambling} ${session.scramble.completed + 1}/${session.scramble.moves.length}`
+    : session.activeTurn?.kind === "undo" ? text.undoing : text.turning;
   const status = session.sceneStatus === "failed" ? text.sceneFailed
     : session.sceneStatus === "loading" ? text.sceneLoading
     : move ? `${turnLabel}: ${move.face} · ${text.faceNames[move.face]} · ${text.turnOptions[move.turns]}`
@@ -103,6 +111,7 @@ export function App() {
             text={text}
             disabled={controlsDisabled}
             onMove={onMove}
+            onScramble={onScramble}
           />
           <MoveHistory
             text={text}

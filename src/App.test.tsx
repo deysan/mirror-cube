@@ -8,8 +8,10 @@ import { CubeScene } from "./components/CubeScene";
 import { messages, type Language } from "./i18n/messages";
 import { createSolvedCube } from "./puzzle/model";
 import { applyMove } from "./puzzle/moves";
+import { createScramble, SCRAMBLE_LENGTH } from "./puzzle/scramble";
 
 vi.mock("./puzzle/model", { spy: true });
+vi.mock("./puzzle/scramble", { spy: true });
 // jsdom has no WebGL. Test UI/state wiring here, transforms in Node, and pixels in a browser.
 vi.mock("./components/CubeScene", () => ({ CubeScene: vi.fn() }));
 
@@ -48,13 +50,14 @@ function expectLanguage(language: Language) {
   for (const value of [
     text.intro, text.readyToTurn, text.viewLabel, text.caption,
     text.angleLabel, text.faceLabel, text.directionHint, text.orientationHint,
-    text.historyTitle, text.historyEmpty, text.undoLastMove,
+    text.historyTitle, text.historyEmpty, text.undoLastMove, text.scrambleHint,
     ...Object.values(text.turnOptions),
     text.geometryEyebrow, text.geometryDescription, text.cubeEdge, text.stageNote,
     ...Object.values(text.axisLayers),
   ]) {
     expect(screen.getByText(value)).toBeDefined();
   }
+  expect(screen.getByRole("button", { name: `${text.scramble} (${SCRAMBLE_LENGTH})` })).toBeDefined();
   for (const dimensions of ["50", "22 / 28", "20 / 30", "17 / 33"]) {
     expect(screen.getByText(`${dimensions} ${text.millimeters}`)).toBeDefined();
   }
@@ -137,6 +140,85 @@ describe("interface language", () => {
     } finally {
       errorLog.mockRestore();
     }
+  });
+});
+
+describe("animated scrambling interface", () => {
+  it("samples once, preserves prior history, and executes the sequence across language changes", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "R Right" }));
+    act(() => sceneProps().onTurnComplete(sceneProps().activeTurn!.id));
+    const prior = sceneProps().state;
+    const canvas = screen.getByTestId("scene-canvas");
+    const sequence = createScramble(() => 0.4);
+    vi.mocked(createScramble).mockReturnValueOnce(sequence);
+    const samples = vi.mocked(createScramble).mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Scramble (12)" }));
+    expect(createScramble).toHaveBeenCalledTimes(samples + 1);
+    expect(sceneProps().state).toBe(prior);
+    expect(screen.getByText("Recorded moves: 1")).toBeDefined();
+    const pending = sceneProps().activeTurn;
+    fireEvent.click(screen.getByRole("button", { name: "Scramble (12)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+    expect(sceneProps().activeTurn).toBe(pending);
+    expect(sceneProps().state).toBe(prior);
+    expect(screen.getByTestId("scene-canvas")).toBe(canvas);
+    expect(createScramble).toHaveBeenCalledTimes(samples + 1);
+
+    for (const [index, move] of sequence.entries()) {
+      expect(sceneProps().activeTurn?.move).toEqual(move);
+      expect(screen.getByText(`Перемішування ${index + 1}/12: ${move.face} · ${messages.uk.faceNames[move.face]} · ${messages.uk.turnOptions[move.turns]}`)).toBeDefined();
+      for (const name of ["Перемішати (12)", "R Права", messages.uk.undoLastMove]) {
+        expect(screen.getByRole("button", { name }).matches(":disabled")).toBe(true);
+        fireEvent.click(screen.getByRole("button", { name }));
+      }
+      const id = sceneProps().activeTurn!.id;
+      act(() => sceneProps().onTurnComplete(id));
+      const after = sceneProps().state;
+      act(() => sceneProps().onTurnComplete(id));
+      expect(sceneProps().state).toBe(after);
+      expect(screen.getByText(`Записані ходи: ${index + 2}`)).toBeDefined();
+    }
+    expect(sceneProps().state).toEqual(sequence.reduce(applyMove, prior));
+    expect(sceneProps().activeTurn).toBeNull();
+    expect(screen.getByText(messages.uk.readyToTurn)).toBeDefined();
+    expect(screen.getByRole("button", { name: "Перемішати (12)" }).matches(":disabled")).toBe(false);
+    expect(createScramble).toHaveBeenCalledTimes(samples + 1);
+    for (let index = 0; index < sequence.length; index++) {
+      fireEvent.click(screen.getByRole("button", { name: messages.uk.undoLastMove }));
+      act(() => sceneProps().onTurnComplete(sceneProps().activeTurn!.id));
+    }
+    expect(sceneProps().state).toEqual(prior);
+    expect(screen.getByText("Записані ходи: 1")).toBeDefined();
+  });
+
+  it("disables scrambling until readiness and during manual turns or undo", () => {
+    vi.mocked(CubeScene).mockImplementation(() => <canvas />);
+    render(<App />);
+    const button = screen.getByRole("button", { name: "Scramble (12)" });
+    expect(button.matches(":disabled")).toBe(true);
+    act(() => sceneProps().onReady());
+    expect(button.matches(":disabled")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "R Right" }));
+    expect(button.matches(":disabled")).toBe(true);
+    act(() => sceneProps().onTurnComplete(sceneProps().activeTurn!.id));
+    fireEvent.click(screen.getByRole("button", { name: messages.en.undoLastMove }));
+    expect(button.matches(":disabled")).toBe(true);
+  });
+
+  it("retains only completed scramble moves when the scene fails", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Scramble (12)" }));
+    act(() => sceneProps().onTurnComplete(sceneProps().activeTurn!.id));
+    const before = sceneProps();
+    act(() => before.onFailure());
+    act(() => before.onTurnComplete(before.activeTurn!.id));
+    expect(screen.getByText("Recorded moves: 1")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Scramble (12)" }).matches(":disabled")).toBe(true);
+    expect(screen.getByRole("status").textContent).toBe(messages.en.sceneUnavailable);
+    fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+    expect(screen.getByText("Записані ходи: 1")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Перемішати (12)" }).matches(":disabled")).toBe(true);
   });
 });
 

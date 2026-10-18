@@ -1,19 +1,27 @@
 import { useState } from "react";
 import type { Messages } from "../i18n/messages";
 import type { Move } from "../puzzle/moves";
+import { SCRAMBLE_LENGTH } from "../puzzle/scramble";
 
 interface MoveControlsProps {
   readonly text: Messages;
   readonly disabled: boolean;
   readonly onMove: (move: Move) => void;
+  readonly onScramble: () => void;
 }
 
-export function MoveControls({ text, disabled, onMove }: MoveControlsProps) {
+export function MoveControls({ text, disabled, onMove, onScramble }: MoveControlsProps) {
   const [turns, setTurns] = useState<Move["turns"]>(1);
 
   return (
     <section className="move-controls" aria-labelledby="controls-title">
       <h2 id="controls-title">{text.controlsTitle}</h2>
+      <div className="scramble-controls">
+        <button type="button" disabled={disabled} onClick={onScramble} aria-describedby="scramble-hint">
+          {text.scramble} ({SCRAMBLE_LENGTH})
+        </button>
+        <p id="scramble-hint">{text.scrambleHint}</p>
+      </div>
       <fieldset disabled={disabled}>
         <legend>{text.angleLabel}</legend>
         <div className="turn-options">
