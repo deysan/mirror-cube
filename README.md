@@ -6,9 +6,9 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 ## Current status
 
-The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state is committed after the movement.
+The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-There is no history, undo, automatic scrambling, solved-state detection, solution search, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+There is no redo, automatic scrambling, solved-state detection, solution search, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 
@@ -82,15 +82,16 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 - `src/puzzle/moves.ts` applies complete 90-degree clockwise/counterclockwise or 180-degree turns on any of the six faces, without mutating input state or piece dimensions.
 - `src/puzzle/moves.test.ts` verifies directions, inverses, repeated turns, current-layer membership, and exact geometric invariants.
 
-Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry needed for future animation.
+Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry used by animation.
 
 ## 3D view and manual turns
 
 - `src/rendering/pieceTransform.ts` converts a piece's definition and orientation into a Three.js matrix. It rotates the actual solved center around the split intersection, never using slot signs as distances.
 - `src/components/CubeScene.tsx` renders eight boxes and animates the selected layer around the mechanism origin. Three.js handles depth testing and hidden surfaces.
 - `src/components/CubeView.tsx` provides the scene's accessible name/description and a localized fallback if the 3D scene cannot initialize.
-- `src/interaction/turnSession.ts` keeps the committed puzzle separate from the pending animation and guards completion by turn ID.
+- `src/interaction/turnSession.ts` keeps the committed puzzle and history separate from the pending animation, and guards completion by turn ID. Undo uses the same transaction with an inverse move.
 - `src/components/MoveControls.tsx` selects direction/angle and requests a face turn.
+- `src/components/MoveHistory.tsx` shows recorded moves, newest first, and requests undo.
 - `src/App.tsx` owns the definitions and session, independently of language. Puzzle state is never reconstructed from meshes.
 
 The fixed orthographic camera looks from positive X, Y, and Z toward the mechanism origin. Positive Y projects upward, positive X down-right, and positive Z down-left. Its zoom fits a pivot-centered sphere that contains all pieces even during turns, avoiding clipping or camera jumps. Zoom adjusts when the viewport changes. The controls explain the fixed face directions and the outside-looking-in meaning of clockwise.
@@ -103,14 +104,22 @@ WebGL 2 is required. Initialization failure or context loss shows a localized fa
 
 See [the animated-turn guide](docs/animated-turns.md) for transaction flow, timing, safe framing, and verification. The measurements panel always describes the solved dimensions, not the current outer shape.
 
-Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 316 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
+Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 317 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
+
+### History and undo
+
+Only completed manual turns enter history. Entries are not combined or automatically canceled: R followed by R′ is still two recorded actions. Each row shows notation and a localized face/direction explanation. The newest entry is first; a long list scrolls within a bounded, keyboard-focusable area.
+
+“Undo last move” animates the inverse of the most recent entry, independently of the angle selected for manual turns. History and puzzle state remain unchanged during that animation; completion updates both atomically. Undo is disabled for empty history, an unavailable scene, or any active turn. Failure during undo preserves the committed state and history.
+
+Repeated undo restores each previous state back to the session's initial state. A new manual turn after undo extends the remaining history; there is no redo stack, history-jump control, or persistence. Reload clears the history. Undo is not presented as solution search or proof of solvedness.
 
 ### Visual verification
 
 1. Run `npm run dev` and open the page.
 2. Confirm the initial solved cube and the 50 mm, 22/28, 20/30, and 17/33 mm reference measurements.
 3. Select a direction/angle and press a face button. Four amber pieces should move; further turns are disabled until completion.
-4. Apply a move and its inverse, try a half-turn, and switch languages during movement. The animation must not restart or accept a second move.
+4. Perform R, U′, and F2, then undo three times. Each animation should remove only the latest entry after completion and restore the previous pose. Switch languages during undo: it must not restart or accept another command.
 5. Resize to desktop and mobile widths; the puzzle should stay in frame, including its protruding pieces. On small screens an offscreen canvas is brought into view when requesting a turn.
 6. Run `npm run build` followed by `npm run preview` to check the production build locally.
 
@@ -138,7 +147,7 @@ The default is English. Language selection is not persisted or inferred from bro
 3. Inspect the document's language and title, and the scene's accessible name/description, in both languages.
 4. Check both languages at narrow widths; longer Ukrainian text should wrap without horizontal overflow.
 
-`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. Only `CubeScene` is mocked because jsdom cannot render WebGL; these tests do not claim to test GPU output. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes and the exactly-once completion contract. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
+`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. Only `CubeScene` is mocked because jsdom cannot render WebGL; these tests do not claim to test GPU output. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes, atomic history updates, and the exactly-once completion contract. Undo tests cover all 18 face/angle combinations, failure during undo, new moves after undo, and exact restoration of every snapshot in a 100-move sequence. Dictionary tests check matching keys and nonempty translations. Solution-progress preservation will need its own tests once playback exists.
 
 ## Documentation
 

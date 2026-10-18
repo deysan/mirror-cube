@@ -32,7 +32,7 @@ Separate discrete state and complete face turns are implemented and committed lo
 
 The SVG renderer was replaced by Three.js with React Three Fiber and committed locally. Eight boxes use exact model dimensions and pose matrices, with depth testing, bilingual accessibility descriptions, and an initialization-failure fallback.
 
-## Current stage: animated manual turns
+## Completed stage: animated manual turns
 
 Six face buttons and three angle/direction choices control a highlighted moving layer. A separate session reducer guards starts and commits the exact move only after animation completion. See the [animated-turn guide](animated-turns.md).
 
@@ -48,7 +48,24 @@ Completion criteria:
 - reduced motion and scene/context failure are handled without a stuck pending move;
 - automated tests, type checking, production build, and browser checks pass.
 
-Limitations: fixed camera, no history/undo, no automatic scrambling, no solved-state detector, no solver or playback. Reload resets the puzzle. The larger graphics bundle still triggers Vite's size warning.
+The manual-turn stage is committed locally. Its fixed camera and larger graphics bundle remain unchanged; Vite's bundle-size warning is not suppressed.
+
+## Current stage: history and animated undo
+
+Completed manual moves enter a chronological history. The bilingual list shows the newest entries first with notation and full move descriptions. Undo animates the inverse of the final entry through the existing scene and completion contract; no rendering or domain dependencies were added.
+
+Completion criteria:
+
+- puzzle and history update together only after a matching completion;
+- manual turns append entries, while undo removes the final entry without recording the inverse;
+- every undo restores the exact prior state, including all angles and mixed sequences;
+- empty history, loading/failure, and active animations block undo;
+- duplicate/stale completions and failure cannot remove an extra history entry;
+- language switching preserves both history and a pending undo;
+- long lists remain bounded and keyboard-scrollable;
+- automated tests, type checking, production build, and browser checks pass.
+
+Limitations: no redo, history navigation, automatic scrambling, solved-state detector, solver, or playback. Reload resets the puzzle and clears history. Undo is not a general solution-search algorithm.
 
 ## Agreed rendering direction and deployment order
 
@@ -56,7 +73,7 @@ The current renderer uses Three.js with React Three Fiber. Correct depth and occ
 
 Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is move history and animated undo. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is animated scrambling with a recorded legal move sequence. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Stage sequence
 

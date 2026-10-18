@@ -169,7 +169,8 @@ figcaption {
   padding: 12px 0;
 }
 
-.move-controls {
+.move-controls,
+.move-history {
   border-bottom: 1px solid #d9dfdd;
   margin-bottom: 28px;
   padding-bottom: 20px;
@@ -215,7 +216,33 @@ figcaption {
   gap: 8px;
 }
 
-.face-buttons button {
+.move-history button {
+  width: 100%;
+}
+
+.move-history ol {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px 8px 4px 36px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.move-history li {
+  padding: 8px 0;
+  border-bottom: 1px solid #d9dfdd;
+}
+
+.move-history code {
+  display: inline-block;
+  min-width: 3ch;
+  margin-right: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.face-buttons button,
+.move-history button {
   min-height: 64px;
   border: 1px solid #aebcb7;
   border-radius: 8px;
@@ -233,23 +260,28 @@ figcaption {
   font-size: 18px;
 }
 
-.face-buttons button:hover:not(:disabled) {
+.face-buttons button:hover:not(:disabled),
+.move-history button:hover:not(:disabled) {
   background: #e1e9e5;
 }
 
 .face-buttons button:disabled,
+.move-history button:disabled,
 .turn-options:has(input:disabled) {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .face-buttons button:focus-visible,
+.move-history button:focus-visible,
+.move-history ol:focus-visible,
 .turn-options input:focus-visible {
   outline: 3px solid #49675f;
   outline-offset: 3px;
 }
 
-.move-controls p {
+.move-controls p,
+.move-history p {
   color: #52616b;
   font-size: 13px;
   line-height: 1.65;

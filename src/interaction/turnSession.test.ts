@@ -1,14 +1,103 @@
 import { describe, expect, it } from "vitest";
 import { createSolvedCube } from "../puzzle/model";
-import { applyMove, type Move } from "../puzzle/moves";
+import { applyMove, inverseMove, type Move } from "../puzzle/moves";
 import { createSolvedState } from "../puzzle/state";
-import { createTurnSession, turnSessionReducer } from "./turnSession";
+import { createTurnSession, turnSessionReducer, type TurnSession } from "./turnSession";
 
 const initial = createSolvedState(createSolvedCube());
 const loading = createTurnSession(initial);
 const ready = turnSessionReducer(loading, { type: "scene-ready" });
 const move: Move = { face: "R", turns: 1 };
 const start = { type: "start", move } as const;
+
+function finish(session: TurnSession) {
+  return turnSessionReducer(session, { type: "complete", id: session.activeTurn!.id });
+}
+
+const allMoves = (["U", "D", "L", "R", "F", "B"] as const).flatMap((face) =>
+  ([1, -1, 2] as const).map((turns) => ({ face, turns })),
+);
+
+describe("history and animated undo", () => {
+  it("records only completed moves, without combining or canceling adjacent entries", () => {
+    const active = turnSessionReducer(ready, start);
+    expect(active.history).toBe(ready.history);
+    expect(active.history).toEqual([]);
+    const first = finish(active);
+    expect(first.history).toEqual([move]);
+    const second = finish(turnSessionReducer(first, { type: "start", move: inverseMove(move) }));
+    expect(second.history).toEqual([move, inverseMove(move)]);
+    expect(second.puzzle).toEqual(initial);
+    expect(first.history).toEqual([move]);
+    expect(ready.history).toEqual([]);
+    expect(turnSessionReducer(second, { type: "complete", id: active.activeTurn!.id })).toBe(second);
+  });
+
+  it.each(allMoves)("undoes $face ($turns) using a pending inverse, then restores the exact previous pose", (lastMove) => {
+    const prior = finish(turnSessionReducer(ready, start));
+    const completed = finish(turnSessionReducer(prior, { type: "start", move: lastMove }));
+    const undoing = turnSessionReducer(completed, { type: "undo" });
+    expect(undoing.activeTurn?.kind).toBe("undo");
+    expect(undoing.activeTurn?.move).toEqual(inverseMove(lastMove));
+    expect(undoing.puzzle).toBe(completed.puzzle);
+    expect(undoing.history).toBe(completed.history);
+    expect(turnSessionReducer(undoing, start)).toBe(undoing);
+    expect(turnSessionReducer(undoing, { type: "undo" })).toBe(undoing);
+    expect(turnSessionReducer(undoing, { type: "complete", id: undoing.activeTurn!.id - 1 })).toBe(undoing);
+    const restored = finish(undoing);
+    expect(restored.puzzle).toEqual(prior.puzzle);
+    expect(restored.history).toEqual(prior.history);
+    expect(completed.history).toEqual([move, lastMove]);
+    expect(turnSessionReducer(restored, { type: "complete", id: undoing.activeTurn!.id })).toBe(restored);
+  });
+
+  it("rejects undo on empty history, before readiness, during a manual turn, and after failure", () => {
+    expect(turnSessionReducer(loading, { type: "undo" })).toBe(loading);
+    expect(turnSessionReducer(ready, { type: "undo" })).toBe(ready);
+    const completed = finish(turnSessionReducer(ready, start));
+    const active = turnSessionReducer(completed, start);
+    expect(turnSessionReducer(active, { type: "undo" })).toBe(active);
+    const failed = turnSessionReducer(completed, { type: "scene-failed" });
+    expect(turnSessionReducer(failed, { type: "undo" })).toBe(failed);
+  });
+
+  it.each(["manual", "undo"] as const)("preserves the committed history and pose on failure during %s", (kind) => {
+    const completed = finish(turnSessionReducer(ready, start));
+    const active = turnSessionReducer(completed, kind === "undo" ? { type: "undo" } : start);
+    const failed = turnSessionReducer(active, { type: "scene-failed" });
+    expect(failed.history).toBe(completed.history);
+    expect(failed.puzzle).toBe(completed.puzzle);
+    expect(failed.activeTurn).toBeNull();
+    expect(turnSessionReducer(failed, { type: "complete", id: active.activeTurn!.id })).toBe(failed);
+  });
+
+  it("restores every snapshot of a long mixed sequence and starts a new branch after undo", () => {
+    let session = ready;
+    const snapshots = [ready];
+    for (let index = 0; index < 100; index++) {
+      const next = allMoves[(index * 7) % allMoves.length]!;
+      session = finish(turnSessionReducer(session, { type: "start", move: next }));
+      snapshots.push(session);
+      expect(session.history.reduce(applyMove, initial)).toEqual(session.puzzle);
+    }
+    for (let index = 99; index >= 0; index--) {
+      session = finish(turnSessionReducer(session, { type: "undo" }));
+      expect(session.puzzle).toEqual(snapshots[index]!.puzzle);
+      expect(session.history).toEqual(snapshots[index]!.history);
+    }
+    expect(session.history).toEqual([]);
+    expect(turnSessionReducer(session, { type: "undo" })).toBe(session);
+
+    const first = finish(turnSessionReducer(session, start));
+    const second = finish(turnSessionReducer(first, start));
+    const undone = finish(turnSessionReducer(second, { type: "undo" }));
+    const branchMove = { face: "B", turns: 2 } as const;
+    const branch = finish(turnSessionReducer(undone, { type: "start", move: branchMove }));
+    expect(branch.history).toEqual([move, branchMove]);
+    expect(branch.puzzle).toEqual(applyMove(first.puzzle, branchMove));
+    expect(finish(turnSessionReducer(branch, { type: "undo" })).puzzle).toEqual(first.puzzle);
+  });
+});
 
 describe("turn transaction", () => {
   it("rejects starts before readiness and after scene failure", () => {

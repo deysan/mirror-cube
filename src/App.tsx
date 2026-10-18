@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { CubeView } from "./components/CubeView";
 import { MoveControls } from "./components/MoveControls";
+import { MoveHistory } from "./components/MoveHistory";
 import { createTurnSession, turnSessionReducer } from "./interaction/turnSession";
 import type { Move } from "./puzzle/moves";
 import { LANGUAGES, messages, type Language } from "./i18n/messages";
@@ -20,8 +21,7 @@ export function App() {
   const onReady = useCallback(() => dispatch({ type: "scene-ready" }), []);
   const onFailure = useCallback(() => dispatch({ type: "scene-failed" }), []);
   const onTurnComplete = useCallback((id: number) => dispatch({ type: "complete", id }), []);
-  const onMove = useCallback((move: Move) => {
-    dispatch({ type: "start", move });
+  const showCanvas = useCallback(() => {
     // On small screens the controls can be below the cube; keep the movement visible.
     const canvas = viewRef.current?.querySelector("canvas");
     if (canvas) {
@@ -31,10 +31,20 @@ export function App() {
       }
     }
   }, []);
+  const onMove = useCallback((move: Move) => {
+    dispatch({ type: "start", move });
+    showCanvas();
+  }, [showCanvas]);
+  const onUndo = useCallback(() => {
+    dispatch({ type: "undo" });
+    showCanvas();
+  }, [showCanvas]);
+  const controlsDisabled = session.sceneStatus !== "ready" || session.activeTurn !== null;
   const move = session.activeTurn?.move;
+  const turnLabel = session.activeTurn?.kind === "undo" ? text.undoing : text.turning;
   const status = session.sceneStatus === "failed" ? text.sceneFailed
     : session.sceneStatus === "loading" ? text.sceneLoading
-    : move ? `${text.turning}: ${move.face} · ${text.faceNames[move.face]} · ${text.turnOptions[move.turns]}`
+    : move ? `${turnLabel}: ${move.face} · ${text.faceNames[move.face]} · ${text.turnOptions[move.turns]}`
     : text.readyToTurn;
 
   useEffect(() => {
@@ -91,8 +101,14 @@ export function App() {
         <aside className="details">
           <MoveControls
             text={text}
-            disabled={session.sceneStatus !== "ready" || session.activeTurn !== null}
+            disabled={controlsDisabled}
             onMove={onMove}
+          />
+          <MoveHistory
+            text={text}
+            history={session.history}
+            disabled={controlsDisabled}
+            onUndo={onUndo}
           />
           <p className="eyebrow">{text.geometryEyebrow}</p>
           <h2 id="geometry-title">{text.geometryTitle}</h2>

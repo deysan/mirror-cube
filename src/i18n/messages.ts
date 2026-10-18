@@ -16,6 +16,12 @@ export interface Messages {
   readonly overviewLabel: string;
   readonly readyToTurn: string;
   readonly turning: string;
+  readonly undoing: string;
+  readonly historyTitle: string;
+  readonly historyCount: string;
+  readonly historyEmpty: string;
+  readonly historyHint: string;
+  readonly undoLastMove: string;
   readonly sceneLoading: string;
   readonly sceneFailed: string;
   readonly controlsTitle: string;
@@ -50,6 +56,12 @@ export const messages = {
     overviewLabel: "Puzzle and turn controls",
     readyToTurn: "Ready to turn",
     turning: "Turning",
+    undoing: "Undoing",
+    historyTitle: "Move history",
+    historyCount: "Recorded moves",
+    historyEmpty: "No recorded moves. Complete a turn to add it here.",
+    historyHint: "Latest first. Undo removes the last move after its inverse turn finishes. R′ means counterclockwise; R2 means a half-turn.",
+    undoLastMove: "Undo last move",
     sceneLoading: "Loading 3D view…",
     sceneFailed: "3D view unavailable",
     controlsTitle: "Make a turn",
@@ -68,7 +80,7 @@ export const messages = {
     cubeEdge: "Cube edge",
     axisLayers: { x: "X layers", y: "Y layers", z: "Z layers" },
     millimeters: "mm",
-    stageNote: "Manual turns are available. History, undo, and step-by-step solutions are not implemented yet. Reloading returns to the solved state.",
+    stageNote: "Manual turns, history, and animated undo are available. Automatic scrambling and solution search are not implemented yet. Reloading resets the puzzle and clears history.",
     cubeTitle: "2×2 Mirror Cube",
     cubeDescription: "A fixed 3D isometric view of the puzzle. During a turn, four highlighted pieces rotate together; the other four remain still.",
     sceneUnavailable: "The 3D view is unavailable. Check WebGL 2 support and reload the page. Turn controls are disabled; an unfinished turn is not applied.",
@@ -82,6 +94,12 @@ export const messages = {
     overviewLabel: "Кубик і керування поворотами",
     readyToTurn: "Готовий до повороту",
     turning: "Поворот",
+    undoing: "Скасування",
+    historyTitle: "Історія ходів",
+    historyCount: "Записані ходи",
+    historyEmpty: "Записаних ходів немає. Завершіть поворот, щоб додати його сюди.",
+    historyHint: "Новіші ходи зверху. Запис зникає після завершення зворотного повороту. R′ означає проти годинникової, R2 — півоберту.",
+    undoLastMove: "Скасувати останній хід",
     sceneLoading: "Завантаження 3D-вигляду…",
     sceneFailed: "3D-вигляд недоступний",
     controlsTitle: "Виконайте поворот",
@@ -100,7 +118,7 @@ export const messages = {
     cubeEdge: "Ребро кубика",
     axisLayers: { x: "Шари по X", y: "Шари по Y", z: "Шари по Z" },
     millimeters: "мм",
-    stageNote: "Ручні повороти вже доступні. Історію, скасування та покрокове рішення ще не реалізовано. Перезавантаження повертає складений стан.",
+    stageNote: "Доступні ручні повороти, історія та анімоване скасування. Автоматичне перемішування й пошук рішення ще не реалізовано. Перезавантаження скидає кубик та очищує історію.",
     cubeTitle: "Дзеркальний кубик 2×2",
     cubeDescription: "Фіксований об’ємний ізометричний вигляд кубика. Під час повороту чотири підсвічені деталі обертаються разом, а решта чотири залишаються нерухомими.",
     sceneUnavailable: "Об’ємне відображення недоступне. Перевірте підтримку WebGL 2 та перезавантажте сторінку. Кнопки поворотів заблоковані; незавершений поворот не застосовано.",

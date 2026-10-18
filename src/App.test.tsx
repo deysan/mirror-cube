@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useEffect, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -48,6 +48,7 @@ function expectLanguage(language: Language) {
   for (const value of [
     text.intro, text.readyToTurn, text.viewLabel, text.caption,
     text.angleLabel, text.faceLabel, text.directionHint, text.orientationHint,
+    text.historyTitle, text.historyEmpty, text.undoLastMove,
     ...Object.values(text.turnOptions),
     text.geometryEyebrow, text.geometryDescription, text.cubeEdge, text.stageNote,
     ...Object.values(text.axisLayers),
@@ -136,6 +137,88 @@ describe("interface language", () => {
     } finally {
       errorLog.mockRestore();
     }
+  });
+});
+
+describe("history and undo interface", () => {
+  function completeTurn() {
+    const props = sceneProps();
+    act(() => props.onTurnComplete(props.activeTurn!.id));
+  }
+
+  it("starts empty, records only completed moves, and lists newest first with notation", () => {
+    render(<App />);
+    expect(screen.getByRole("button", { name: messages.en.undoLastMove }).matches(":disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "R Right" }));
+    expect(screen.getByText(messages.en.historyEmpty)).toBeDefined();
+    expect(screen.queryByRole("list")).toBeNull();
+    completeTurn();
+    expect(screen.getByText("Recorded moves: 1")).toBeDefined();
+    expect(screen.getByRole("button", { name: messages.en.undoLastMove }).matches(":disabled")).toBe(false);
+    fireEvent.click(screen.getByRole("radio", { name: messages.en.turnOptions[-1] }));
+    fireEvent.click(screen.getByRole("button", { name: "U Top" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: messages.en.undoLastMove }).matches(":disabled")).toBe(true);
+    completeTurn();
+    fireEvent.click(screen.getByRole("radio", { name: messages.en.turnOptions[2] }));
+    fireEvent.click(screen.getByRole("button", { name: "F Front" }));
+    completeTurn();
+    const items = within(screen.getByRole("list", { name: messages.en.historyTitle })).getAllByRole("listitem");
+    expect(items.map((item) => item.querySelector("code")?.textContent)).toEqual(["F2", "U′", "R"]);
+    expect(items[0]!.textContent).toContain("Front · 180° half-turn");
+    expect(screen.getByRole("list").getAttribute("start")).toBe("3");
+  });
+
+  it("keeps history during undo, survives language switching, and restores the prior pose once", () => {
+    render(<App />);
+    const initial = sceneProps().state;
+    const canvas = screen.getByTestId("scene-canvas");
+    fireEvent.click(screen.getByRole("button", { name: "R Right" }));
+    completeTurn();
+    const committed = sceneProps().state;
+    // The angle currently selected for manual turns does not affect undo.
+    fireEvent.click(screen.getByRole("radio", { name: messages.en.turnOptions[2] }));
+    fireEvent.click(screen.getByRole("button", { name: messages.en.undoLastMove }));
+    const undo = sceneProps().activeTurn!;
+    expect(undo.move).toEqual({ face: "R", turns: -1 });
+    expect(sceneProps().state).toBe(committed);
+    expect(screen.getByText("Recorded moves: 1")).toBeDefined();
+    expect(screen.getByRole("button", { name: messages.en.undoLastMove }).matches(":disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "F Front" }).matches(":disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: messages.en.undoLastMove }));
+    fireEvent.click(screen.getByRole("button", { name: "F Front" }));
+    expect(sceneProps().activeTurn).toBe(undo);
+    fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+    expect(sceneProps().activeTurn).toBe(undo);
+    expect(sceneProps().state).toBe(committed);
+    expect(screen.getByText("Скасування: R · Права · 90° проти годинникової")).toBeDefined();
+    expect(screen.getByText("Записані ходи: 1")).toBeDefined();
+    expect(screen.getByRole("list", { name: messages.uk.historyTitle }).textContent).toContain("Права · 90° за годинниковою");
+    completeTurn();
+    expect(sceneProps().state).toEqual(initial);
+    expect(screen.getByTestId("scene-canvas")).toBe(canvas);
+    expect(screen.getByText(messages.uk.historyEmpty)).toBeDefined();
+    expect(screen.getByRole("button", { name: messages.uk.undoLastMove }).matches(":disabled")).toBe(true);
+    act(() => sceneProps().onTurnComplete(undo.id));
+    expect(sceneProps().state).toEqual(initial);
+    expect(screen.getByText("Записані ходи: 0")).toBeDefined();
+  });
+
+  it("retains the history and disables undo if the scene fails during undo", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "R Right" }));
+    completeTurn();
+    fireEvent.click(screen.getByRole("button", { name: messages.en.undoLastMove }));
+    const before = sceneProps();
+    act(() => before.onFailure());
+    expect(screen.getByRole("status").textContent).toBe(messages.en.sceneUnavailable);
+    expect(screen.getByText("Recorded moves: 1")).toBeDefined();
+    expect(screen.getByRole("button", { name: messages.en.undoLastMove }).matches(":disabled")).toBe(true);
+    act(() => before.onTurnComplete(before.activeTurn!.id));
+    expect(screen.getByText("Recorded moves: 1")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+    expect(screen.getByText("Записані ходи: 1")).toBeDefined();
+    expect(screen.getByRole("button", { name: messages.uk.undoLastMove }).matches(":disabled")).toBe(true);
   });
 });
 
