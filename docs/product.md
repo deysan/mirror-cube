@@ -26,7 +26,7 @@ Each step should clearly explain:
 
 ## Languages
 
-The current interface supports English and Ukrainian. Future step-by-step solution instructions, including guidance on holding and turning the puzzle, must also be available in both languages.
+The current interface and step-by-step solution instructions support English and Ukrainian, including guidance on holding and turning the puzzle.
 
 Users should be able to switch languages without resetting the puzzle or their progress through a solution. Puzzle state, move identifiers, and solution search must be independent of the selected language.
 
@@ -60,7 +60,7 @@ All current model lengths use whole millimeters, with no rounding or approximate
 
 ## First-version boundaries
 
-The application currently works with a known virtual puzzle state and tracks performed turns. History-independent search is connected to a worker and a bilingual solve/result panel, with cancellation and stale-result protection. It does not yet animate the returned solution. Photo input is the final planned functional stage, after this shared solving workflow and its animated instructions are working.
+The application currently works with a known virtual puzzle state and tracks performed turns. History-independent search is connected to a worker and a bilingual solve/result panel, with cancellation and stale-result protection. The returned solution can be executed one animated step at a time, with exact progress/history commits and a verified solved completion. Photo input remains the final planned functional stage, building on this shared solving workflow and its bilingual instructions.
 
 A single photograph may hide pieces or fail to distinguish their shapes and orientations. Do not promise reconstruction from one arbitrary image. The capture protocol, recognition approach, and any calibration requirements remain to be validated on the owner's physical cube. Start with its confirmed dimensions rather than assuming arbitrary Mirror Cube models are interchangeable.
 
@@ -70,6 +70,6 @@ Other puzzles, user accounts, payments, and backend infrastructure are outside t
 
 ## Hosting
 
-The repository is public. Deployment is deferred until the solving workflow and animated step-by-step playback are ready. The application will then be deployed as a static site on Netlify's free plan, initially using a `netlify.app` subdomain. Paid services, options, and a custom domain require separate approval.
+The repository is public and manual solve/playback works locally. Deployment remains deferred and requires separate owner approval; the complete planned release includes photo input as well. The hosting target is a static site on Netlify's free plan, initially using a `netlify.app` subdomain. Paid services, options, and a custom domain require separate approval.
 
 Check the current free-plan limits before the first deployment. Free hosting does not mean unlimited traffic or builds.

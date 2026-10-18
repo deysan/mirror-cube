@@ -48,6 +48,7 @@ Add meaningful tests alongside the relevant functionality:
 - applying a returned solution actually solves the input state without requiring its move history;
 - completed searches match independent shortest-path checks, and cancellation/budget limits never return partial paths or claim unsolvability;
 - search/table construction stay in the worker, cancellation terminates active work, and obsolete worker/request/snapshot results cannot replace current results;
+- solution steps commit puzzle/history/progress exactly once, invalidate on unrelated turns, and verify exact solvedness at completion;
 - language switching updates user-facing text without changing puzzle state or solution progress.
 
 Run the checks available for the current stage. Report what was verified and what could not be verified; never claim that unrun tests passed.
@@ -55,7 +56,7 @@ Run the checks available for the current stage. Report what was verified and wha
 ## GitHub and deployment
 
 - The repository is public: never commit secrets, tokens, private keys, or local environment files.
-- Target Netlify's free plan with a `*.netlify.app` address, but defer deployment until solving and animated step-by-step playback are ready.
+- Target Netlify's free plan with a `*.netlify.app` address. Manual solve/playback works locally, but deployment remains deferred and requires separate owner approval; the complete planned release includes both input workflows.
 - Do not enable paid options, services, or a custom domain without separate approval. Check current free-plan terms before deployment.
 - Do not add deployment configuration before a buildable application exists.
 - The owner chooses the license; do not add one independently.

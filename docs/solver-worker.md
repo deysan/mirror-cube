@@ -6,7 +6,7 @@
 
 The solution panel shows an already-solved message, or a numbered list of moves in **execution order**, with notation, face names, and direction/angle descriptions. It also distinguishes invalid input, cancellation, depth/node/time limits, worker failure, and a request timeout. A limit never means “unsolvable.” The list is separate from newest-first move history.
 
-Finding a solution does **not** apply any moves or append history. Animated solution playback, imported-state UI, photo recognition, and deployment remain separate stages. “Ready to turn” still describes interaction readiness, not solvedness; the already-solved message appears only as a search result.
+Finding a solution does **not** apply any moves or append history. [Animated solution playback](solution-playback.md) is now implemented separately: each step requires explicit activation and advances the plan only after its animation completes. Imported-state UI, photo recognition, and deployment remain deferred. “Ready to turn” still describes interaction readiness, not solvedness; the already-solved message appears only as a search result.
 
 ## Boundaries and data flow
 
@@ -34,7 +34,7 @@ The client accepts a response only from its current worker for its pending reque
 
 After completion, duplicate results cannot commit again. After cancellation/retry, old IDs cannot replace a newer search. Captured callbacks from terminated workers are ignored by worker identity even if their IDs match. Search never updates puzzle poses or move history.
 
-An accepted manual turn, undo, or scramble clears a previous result **when animation starts**, not only when it completes. Failed/no-op turn requests do not clear it. Scene failure clears search/result state and terminates pending work, preserving the committed puzzle/history. Reload clears the session and result.
+An accepted manual turn, undo, or scramble clears a previous result **when animation starts**, not only when it completes. Failed/no-op turn requests do not clear it. Scene failure clears search/result state and terminates pending work, preserving the committed puzzle/history. Starting a new search also discards any playback plan. Solution-step turns are a separate transaction that retains the verified sequence and advances its cursor; see the playback guide. Reload clears the session and result.
 
 ## Cancellation, budgets, and failures
 
@@ -70,4 +70,4 @@ For manual review:
 5. Start a new turn after a result: the old list must disappear before the turn commits.
 6. Inspect both languages at narrow widths; a long list must be bounded, focusable, and keyboard-scrollable.
 
-Run `npm test`, `npm run typecheck`, and `npm run build`. The existing large graphics-chunk warning remains; search code is a separate worker asset. The next proposed stage is bilingual animated solution playback, with snapshot-bound progress and the existing exactly-once turn-completion contract.
+Run `npm test`, `npm run typecheck`, and `npm run build`. The existing large graphics-chunk warning remains; search code is a separate worker asset. Bilingual animated playback is implemented separately using snapshot-bound progress and the existing exactly-once turn-completion contract. Photo capture/reconstruction remains the next functional input boundary to design and validate.

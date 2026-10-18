@@ -4,7 +4,7 @@
 
 `src/solver/search.ts` implements synchronous solution search from plain puzzle-state data. It uses the [normalized coordinates](state-encoding.md), [transition/distance tables](solver-tables.md), and [exact solvedness contract](solver.md). It has no React, Three.js, language, history, or piece-dimension dependency.
 
-This is the common solver core for manual turns/scrambling and future confirmed photo reconstruction. [Worker integration](solver-worker.md), a “Find solution” button, and localized result handling are implemented separately. The UI runs search only in a dedicated worker, not on the main thread. Animated solution playback is **not implemented yet**.
+This is the common solver core for manual turns/scrambling and future confirmed photo reconstruction. [Worker integration](solver-worker.md), a “Find solution” button, and localized result handling are implemented separately. The UI runs search only in a dedicated worker, not on the main thread. [Animated solution playback](solution-playback.md) executes the returned sequence through a separate snapshot-bound interaction transaction.
 
 ## API
 
@@ -93,4 +93,4 @@ The complete graph's distance histogram, at depths 0 through 11, is:
 
 A local Node.js v24.19.0 run, using a non-minified Vite library bundle and already-built tables, solved and checked 101 cases: the depth-eleven fixture `{ permutation: 7, twist: 22 }` plus 100 deterministic samples (LCG seed 42, multiplier 1664525, increment 1013904223, unsigned 32-bit output modulo 3,674,160). Total search-call time was approximately **53 ms**; the slowest call took **14.2 ms**, visiting **704,205 nodes**. Every length matched the complete BFS oracle, and every result passed exact domain replay. These are development-machine observations, not browser/mobile guarantees, exhaustive worst-case measurements, or test thresholds. Table initialization is a separate cost; see the table guide.
 
-Run `npm test`, `npm run typecheck`, and `npm run build`. The pure-core stage did not change UI/rendering. Its subsequent worker/UI integration has separate browser checks in the worker guide. Animated solution playback remains the next proposed stage and requires owner approval.
+Run `npm test`, `npm run typecheck`, and `npm run build`. The pure-core stage did not change UI/rendering. Its subsequent worker/UI integration has separate browser checks in the worker guide. Animated solution playback is documented and verified separately in the playback guide.

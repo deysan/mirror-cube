@@ -48,6 +48,10 @@ export function App() {
     dispatch({ type: "scramble", moves: createScramble() });
     showCanvas();
   }, [showCanvas]);
+  const onNextSolutionStep = useCallback(() => {
+    dispatch({ type: "solution-next" });
+    showCanvas();
+  }, [showCanvas]);
   const onFind = useCallback(() => dispatch({ type: "find-solution" }), []);
   const onCancelSearch = useCallback(() => dispatch({ type: "cancel-search" }), []);
   const onSearchResult = useCallback((response: SolverResponse) => dispatch({ type: "search-result", response }), []);
@@ -56,7 +60,9 @@ export function App() {
   const move = session.activeTurn?.move;
   const turnLabel = session.scramble
     ? `${text.scrambling} ${session.scramble.completed + 1}/${session.scramble.moves.length}`
-    : session.activeTurn?.kind === "undo" ? text.undoing : text.turning;
+    : session.activeTurn?.kind === "solution" && session.playback
+      ? `${text.solutionStep} ${session.playback.completed + 1}/${session.playback.moves.length}`
+      : session.activeTurn?.kind === "undo" ? text.undoing : text.turning;
   const status = session.sceneStatus === "failed" ? text.sceneFailed
     : session.sceneStatus === "loading" ? text.sceneLoading
     : move ? `${turnLabel}: ${move.face} · ${text.faceNames[move.face]} · ${text.turnOptions[move.turns]}`
@@ -124,6 +130,9 @@ export function App() {
           <SolutionPanel
             text={text}
             search={session.search}
+            playback={session.playback}
+            animating={session.activeTurn?.kind === "solution"}
+            onNext={onNextSolutionStep}
             disabled={controlsDisabled}
             onFind={onFind}
             onCancel={onCancelSearch}

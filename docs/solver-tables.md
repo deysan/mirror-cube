@@ -2,7 +2,7 @@
 
 ## Scope
 
-`src/solver/tables.ts` implements normalized move lookups and admissible lower bounds for the IDA* solver. It builds on the [validated coordinate encoding](state-encoding.md) and the existing exact `applyMove` rules. Search is implemented separately in [the search core](solver-search.md); worker integration and a solve button are described in the [worker guide](solver-worker.md). Animated solution playback is not yet implemented.
+`src/solver/tables.ts` implements normalized move lookups and admissible lower bounds for the IDA* solver. It builds on the [validated coordinate encoding](state-encoding.md) and the existing exact `applyMove` rules. Search is implemented separately in [the search core](solver-search.md); worker integration and a solve button are described in the [worker guide](solver-worker.md). Animated execution is implemented in the separate [playback layer](solution-playback.md).
 
 Both input workflows use this same foundation: manually turn/scramble the virtual cube, or later reconstruct and confirm a physical state from photographs. Neither tables nor search require the input's move history.
 
@@ -93,4 +93,4 @@ Only the separate worker asset imports these tables at runtime; the main UI does
 
 The edge inequalities and descending-neighbor checks certify the shortest-distance labels without repeating the builder's BFS: edge bounds prevent overestimation and descending paths realize each label. Existing coordinate and domain tests remain in place. The table tests do not exhaustively traverse the full 3,674,160-state Cartesian graph. The separate search tests now do so with a test-only BFS oracle; it is not part of table construction.
 
-Run `npm test` and `npm run build`. The table module itself has no UI/rendering behavior. Search and worker/UI integration are implemented separately; animated solution playback remains the next functional step.
+Run `npm test` and `npm run build`. The table module itself has no UI/rendering behavior. Search, worker/UI integration, and animated solution playback are implemented and verified separately.

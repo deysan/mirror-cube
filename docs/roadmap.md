@@ -22,7 +22,7 @@ The initial React + Vite page used a fixed isometric SVG view derived from the m
 
 English and Ukrainian dictionaries and a language switcher are committed and published. The language affects text, accessibility labels, and document metadata, not the puzzle model or geometry. Tests verify switching in both directions and model preservation.
 
-Limitations: English is the initial language; selection is not persisted across reloads. Solution-progress preservation cannot be tested until solutions and playback exist.
+Limitations: English is the initial language; selection is not persisted across reloads. Solution-progress preservation was tested later, when playback was implemented.
 
 ## Completed stage: exact move rules
 
@@ -83,7 +83,7 @@ Completion criteria:
 - language switching preserves the sequence, progress, and animation;
 - automated tests, type checking, production build, and browser checks pass.
 
-Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No scramble pause/cancel, adjustable scramble length/speed, redo, or solution playback. Reload resets the session. This stage is committed locally.
+Limitations: random-walk scrambling is not uniform random-state sampling and does not guarantee difficulty or an unsolved endpoint. No scramble pause/cancel, adjustable scramble length/speed, or redo. Solution playback was added in a separate later stage. Reload resets the session. This stage is committed locally.
 
 ## Completed stage: exact solvedness and solver design
 
@@ -148,9 +148,9 @@ Completion criteria:
 - frozen inputs and table contents remain unchanged, and no history or partial-path fallback is used;
 - tests, type checking, and production build pass; local timing observations are recorded without device-performance guarantees.
 
-Limitations of the core stage: the API is synchronous; its cancellation hook cannot receive queued events during traversal. Worker interruption, stale-result safety, and solve UI were added in the following stage. Playback and recognition remain deferred.
+Limitations of the core stage: the API is synchronous; its cancellation hook cannot receive queued events during traversal. Worker interruption, stale-result safety, and solve UI were added in the following stage. Playback was added later; recognition remains deferred.
 
-## Current stage: worker-backed solution search
+## Completed stage: worker-backed solution search
 
 A lazy dedicated worker builds and reuses tables and searches a committed snapshot. The bilingual solution panel offers search/cancel and displays verified moves without applying them. Worker/request/snapshot guards reject obsolete results; cancellation terminates active work. See the [worker/UI guide](solver-worker.md).
 
@@ -165,15 +165,33 @@ Completion criteria:
 - duplicate/late responses cannot replace the current result, including after cancellation/retry;
 - automated tests, type checking, production build, and real-worker browser checks pass.
 
-Limitations: animated solution playback and photo input are not implemented. Cancelled/failed workers lose their tables; retry rebuilds them. Search budgets are fixed in the UI; no progress percentages or automatic retries are added. Browser background throttling can delay the watchdog.
+Limitations of the worker stage: cancelled/failed workers lose their tables; retry rebuilds them. Search budgets are fixed in the UI; no search-progress percentages or automatic retries are added. Browser background throttling can delay the watchdog. Playback was implemented in the following stage; photo input is still deferred.
+
+## Current stage: step-by-step animated solution playback
+
+The solution panel now offers one explicitly activated step at a time, with bilingual orientation/direction instructions, current/completed row markers, and progress. A separate snapshot-bound playback record uses the existing renderer and turn-completion contract. See the [playback guide](solution-playback.md).
+
+Completion criteria:
+
+- the next move comes from the verified sequence, not the manual angle selection;
+- puzzle, history, and completed count update atomically only after a matching animation completion;
+- duplicate callbacks and repeated requests during movement cannot advance extra steps;
+- language switching preserves the active turn, exact state, and progress;
+- manual turns, undo, scrambling, and new search between steps invalidate the old plan;
+- scene failure preserves only the committed state/history prefix;
+- final success requires exact solvedness, including globally rotated goals;
+- all 18 move types and real history-free solutions through all 24 global frames are covered;
+- tests, type checking, production build, and real worker/animation browser checks pass.
+
+Limitations: no autoplay, dedicated backward-step/resume-after-undo behavior, adjustable speed, persistent progress, or mid-turn pause/cancel. Photo capture and reconstruction are not implemented. Manual solve/playback is available locally; deployment remains a separate unapproved stage.
 
 ## Agreed rendering direction and deployment order
 
 The current renderer uses Three.js with React Three Fiber. Correct depth and occlusion during shape-changing turns justify replacing the solved-only SVG renderer. Animation timing does not need an additional library at this point.
 
-Netlify deployment is deferred until the solving workflow and animated playback are ready. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
+The manual solve/playback workflow is now available locally. Netlify deployment remains deferred and requires separate approval; the complete planned release includes photo input as well. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is bilingual animated solution playback using the verified sequence, snapshot-bound progress, and the existing exactly-once animation completion contract. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The next proposed stage is to agree and validate the guided photo-capture, reconstruction, and confirmation protocol on the owner's puzzle before choosing recognition tools or implementing photo input. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
 ## Final functional goal: two inputs, one solving workflow
 
@@ -194,13 +212,13 @@ The solver must accept a validated discrete state without move history; recognit
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
 | 9. Solution search | Goal check, validation/encoding, tables, IDA*, and safe worker/UI integration (implemented) | Applying the returned sequence solves a valid input state without access to its generating moves |
-| 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
+| 10. Step-by-step solution | Localized instructions and user-paced animated playback (implemented) | Orientation cues, highlights, and state agree at every step in both languages |
 | 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
 | 12. Deployment | Publish both input-to-solution workflows on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
-Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Verify that language switching preserves solution progress when playback is implemented.
+Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Playback tests verify that language switching preserves solution progress.
 
-Reversing move history must not be presented as a general solution-search algorithm. The IDA* core and worker/UI integration are implemented and locally verified; end-to-end animated solution playback still needs its own implementation and verification stage.
+Reversing move history must not be presented as a general solution-search algorithm. The IDA* core, worker/UI integration, and end-to-end user-paced animated playback are implemented and locally verified. Guided photo input remains a required separate stage.
 
 ## Completed model stage: scope and checks
 

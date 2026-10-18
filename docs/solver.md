@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). The synchronous IDA* search core is implemented; see [the search guide](solver-search.md) for its results, limits, cancellation contract, and measurements. [Worker/UI integration](solver-worker.md) is implemented, including real worker termination and stale-result protection. Animated solution playback is **not implemented yet**. This document records the design and required checks; it is not permission to start all following stages.
+`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). The synchronous IDA* search core is implemented; see [the search guide](solver-search.md) for its results, limits, cancellation contract, and measurements. [Worker/UI integration](solver-worker.md) is implemented, including real worker termination and stale-result protection. [Animated solution playback](solution-playback.md) is implemented as a separate snapshot-bound transaction, including a final exact solvedness check. This document records the design and required checks; it is not permission to start all following stages.
 
 Input comes from manual turns/scrambling of the virtual cube or, in a later stage, photographs of a physical puzzle. Both are supported workflows using the same state-based solver. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
 
@@ -81,7 +81,8 @@ Implement in small stages:
 2. **Implemented:** transition/distance tables, projection checks, shortest-distance certificates, and independent depth-four full-state checks.
 3. **Implemented:** the pure IDA* search engine, with exact result replay, limits/cancellation, independent full-pose shortest-path checks, and sampled comparisons to a complete coordinate-graph BFS oracle.
 4. **Implemented:** browser worker integration, termination-based cancellation/stale-result protection, and bilingual result handling.
-5. **Next:** animated solution playback with snapshot-bound progress and exactly-once move commits.
+5. **Implemented:** user-paced animated solution playback with snapshot-bound progress, exactly-once move/history commits, and final solvedness verification.
+6. **Next input boundary:** guided photo capture, reconstruction, correction/confirmation, and validation; establish the protocol before choosing recognition tools.
 
 The worker should receive a puzzle-state snapshot, not React state or history. Applying a result must be tied to the snapshot that was searched. Do not block the main thread with an unbounded search or apply a late result to a changed puzzle.
 

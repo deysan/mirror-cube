@@ -38,6 +38,15 @@ export interface Messages {
   readonly solutionCount: string;
   readonly solutionMoves: string;
   readonly solutionHint: string;
+  readonly nextSolutionStep: string;
+  readonly solutionStep: string;
+  readonly solutionProgress: string;
+  readonly solutionComplete: string;
+  readonly playbackFailed: string;
+  readonly playbackOrientation: string;
+  readonly stepInProgress: string;
+  readonly stepCompleted: string;
+  readonly stepCurrent: string;
   readonly searchInvalid: string;
   readonly invalidCorner: string;
   readonly stateErrors: Readonly<Record<StateErrorCode, string>>;
@@ -97,9 +106,18 @@ export const messages = {
     searching: "Finding solution",
     searchCancelled: "Search cancelled. The cube and history are unchanged.",
     searchSolved: "The cube is already solved. No moves are needed.",
-    solutionCount: "Moves to solve",
+    solutionCount: "Total solution moves",
     solutionMoves: "Solution moves in execution order",
-    solutionHint: "No moves have been applied. Animated playback is not available yet. Making a turn clears this result. A half-turn counts as one move.",
+    solutionHint: "Execute one step at a time. Completed steps enter history. A manual turn, undo, scramble, or new search clears this plan. A half-turn counts as one move.",
+    nextSolutionStep: "Execute next step",
+    solutionStep: "Solution step",
+    solutionProgress: "Completed steps",
+    solutionComplete: "Solution complete. The cube is solved.",
+    playbackFailed: "Playback stopped: this solution does not match the current state. Find a new solution.",
+    playbackOrientation: "Keep U on top, F toward you, and R on your right throughout the solution. In this view, F is the left visible side and R the right. View clockwise directly from the named face, including L, D, and B facing away from the camera.",
+    stepInProgress: "Executing this step… Wait for the turn to finish.",
+    stepCompleted: "Completed",
+    stepCurrent: "Current step",
     searchInvalid: "Invalid puzzle state.",
     invalidCorner: "Corner entry",
     stateErrors: {
@@ -135,7 +153,7 @@ export const messages = {
     cubeEdge: "Cube edge",
     axisLayers: { x: "X layers", y: "Y layers", z: "Z layers" },
     millimeters: "mm",
-    stageNote: "Manual turns, scrambling, history, animated undo, and solution search are available. Animated solution playback and photo input are not available yet. Reloading resets the puzzle, history, and search result.",
+    stageNote: "Manual turns, scrambling, history, animated undo, solution search, and step-by-step playback are available. Photo input is not available yet. Reloading resets the puzzle, history, and solution progress.",
     cubeTitle: "2×2 Mirror Cube",
     cubeDescription: "A fixed 3D isometric view of the puzzle. During a turn, four highlighted pieces rotate together; the other four remain still.",
     sceneUnavailable: "The 3D view is unavailable. Check WebGL 2 support and reload the page. Turn controls are disabled; completed turns are kept, and unfinished or queued turns are not applied.",
@@ -167,9 +185,18 @@ export const messages = {
     searching: "Пошук розв’язку",
     searchCancelled: "Пошук скасовано. Кубик та історія не змінилися.",
     searchSolved: "Кубик уже складений. Ходи не потрібні.",
-    solutionCount: "Ходів до складання",
+    solutionCount: "Усього ходів розв’язку",
     solutionMoves: "Ходи розв’язку в порядку виконання",
-    solutionHint: "Жодного ходу не застосовано. Анімоване відтворення ще недоступне. Новий поворот очищує цей результат. Півоберту рахується як один хід.",
+    solutionHint: "Виконуйте по одному кроку. Завершені кроки потрапляють до історії. Ручний поворот, скасування ходу, перемішування чи новий пошук очищує цей план. Півоберту рахується як один хід.",
+    nextSolutionStep: "Виконати наступний крок",
+    solutionStep: "Крок розв’язку",
+    solutionProgress: "Завершено кроків",
+    solutionComplete: "Розв’язок виконано. Кубик складений.",
+    playbackFailed: "Відтворення зупинено: цей розв’язок не відповідає поточному стану. Знайдіть новий розв’язок.",
+    playbackOrientation: "Протягом розв’язку тримайте U зверху, F до себе, а R праворуч. На зображенні F — ліва видима сторона, R — права. Напрямок за годинниковою визначайте, дивлячись прямо на названу грань, зокрема на L, D і B, спрямовані від камери.",
+    stepInProgress: "Виконуємо цей крок… Дочекайтеся завершення повороту.",
+    stepCompleted: "Завершено",
+    stepCurrent: "Поточний крок",
     searchInvalid: "Некоректний стан кубика.",
     invalidCorner: "Запис деталі",
     stateErrors: {
@@ -205,7 +232,7 @@ export const messages = {
     cubeEdge: "Ребро кубика",
     axisLayers: { x: "Шари по X", y: "Шари по Y", z: "Шари по Z" },
     millimeters: "мм",
-    stageNote: "Доступні ручні повороти, перемішування, історія, анімоване скасування та пошук розв’язку. Анімоване відтворення розв’язку та введення з фото ще недоступні. Перезавантаження скидає кубик, історію та результат пошуку.",
+    stageNote: "Доступні ручні повороти, перемішування, історія, анімоване скасування, пошук розв’язку та покрокове відтворення. Введення з фото ще недоступне. Перезавантаження скидає кубик, історію та прогрес розв’язку.",
     cubeTitle: "Дзеркальний кубик 2×2",
     cubeDescription: "Фіксований об’ємний ізометричний вигляд кубика. Під час повороту чотири підсвічені деталі обертаються разом, а решта чотири залишаються нерухомими.",
     sceneUnavailable: "Об’ємне відображення недоступне. Перевірте підтримку WebGL 2 та перезавантажте сторінку. Кнопки поворотів заблоковані; завершені ходи збережено, а незавершені й заплановані — не застосовано.",

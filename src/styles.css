@@ -236,6 +236,26 @@ figcaption {
   flex: 1 1 140px;
 }
 
+.solution-instruction {
+  padding: 14px;
+  margin-bottom: 16px;
+  border-left: 3px solid #886021;
+  background: #faf0da;
+  line-height: 1.5;
+}
+
+.solution-panel li[aria-current="step"] {
+  border-left: 3px solid #886021;
+  padding-left: 8px;
+  background: #faf0da;
+}
+
+.solution-step-state {
+  display: block;
+  color: #49675f;
+  font-weight: 650;
+}
+
 .move-history ol,
 .solution-panel ol {
   max-height: 240px;
