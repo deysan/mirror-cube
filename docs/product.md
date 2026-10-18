@@ -2,16 +2,18 @@
 
 ## Purpose
 
-MirrorCube provides interactive, step-by-step instructions for solving a 2×2 Mirror Cube. Users should understand each movement rather than rely only on move notation.
+MirrorCube's target workflow is to recognize the state of a physical 2×2 Mirror Cube from photographs, find a solution, and present interactive, animated instructions. Users should understand each movement rather than rely only on move notation. Photo input is a required final functional stage, not an optional extension; it is not implemented yet.
 
 The puzzle consists of eight differently sized pieces. Turns change its outer shape; in the solved state, the pieces form a cube with flush outer surfaces.
 
 ## Core user journey
 
-1. View a 3D representation of the solved puzzle.
-2. Make turns or scramble the puzzle.
-3. Request a solution for the current known state.
-4. Follow the solution step by step with animations and highlighted moving pieces.
+1. Photograph the physical puzzle using guided views; the required number and angles will be determined during the photo-input stage.
+2. Review the reconstructed 3D state, resolve ambiguities with additional views or corrections, and confirm it.
+3. Request a solution from that validated state, without needing its move history.
+4. Follow the solution step by step on the physical puzzle, using orientation guidance, animations, and highlighted moving pieces.
+
+The current virtual cube, manual turns, scrambling, and undo provide a testable foundation for the solver and playback. They are not a substitute for the final photo-to-solution workflow.
 
 Each step should clearly explain:
 
@@ -35,9 +37,10 @@ Repository documentation is maintained in English. Ukrainian user-facing transla
 - Face-turn controls.
 - Animated scrambling from the current state, which is initially solved. Repeated scrambling preserves existing history rather than resetting the puzzle.
 - Move history and undo for the latest turn.
-- Solution search from the current state.
+- Solution search from a valid state, independent of how it was obtained and without requiring move history.
 - Step-by-step solution playback with highlighted moving pieces.
 - An English/Ukrainian language switcher with localized UI and instructions.
+- Photo-based reconstruction and confirmation of the physical puzzle state, implemented after solution search and playback.
 
 This is a guide for incremental development, not a request to implement everything in one stage.
 
@@ -55,7 +58,11 @@ All current model lengths use whole millimeters, with no rounding or approximate
 
 ## First-version boundaries
 
-The application works with a known virtual puzzle state and tracks performed turns. Recognizing a physical puzzle from photographs is a possible separate future stage.
+The application currently works with a known virtual puzzle state and tracks performed turns. Photo input is the final planned functional stage, after the independent solver and animated instructions are working.
+
+A single photograph may hide pieces or fail to distinguish their shapes and orientations. Do not promise reconstruction from one arbitrary image. The capture protocol, recognition approach, and any calibration requirements remain to be validated on the owner's physical cube. Start with its confirmed dimensions rather than assuming arbitrary Mirror Cube models are interchangeable.
+
+Recognition must remain separate from puzzle rules and search. It should produce a candidate discrete state using the known piece definitions; uncertain observations must not silently become exact assignments. The workflow must allow additional views or corrections and validate the confirmed state before solving. No image model, external service, image storage, or backend has been selected.
 
 Other puzzles, user accounts, payments, and backend infrastructure are outside the current MVP.
 

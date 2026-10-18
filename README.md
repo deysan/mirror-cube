@@ -1,6 +1,8 @@
 # MirrorCube
 
-MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. It will show how to hold the puzzle, which half to turn, and what each move does using a 3D view and animations.
+MirrorCube is an interactive, step-by-step guide to solving a physical 2×2 Mirror Cube from photographs. The target workflow is **photos → reconstructed and confirmed puzzle state → solution search → animated instructions** showing how to hold and turn the puzzle.
+
+Photo input is the final planned functional stage, after the independent solver and playback. The current virtual cube is their foundation, not the final input workflow. The solver must accept a validated state without requiring move history. A single photo may be insufficient; guided views and confirmation will be designed and verified during the photo-input stage.
 
 The interface supports **English and Ukrainian**. Solution instructions will support both languages when implemented. Repository documentation is written in English.
 
@@ -8,7 +10,7 @@ The interface supports **English and Ukrainian**. Solution instructions will sup
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-There is no redo, solved-state detection, solution search, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
+There is no redo, solved-state detection, solution search, photo recognition, or public deployment yet. The original SVG renderer has been removed. Netlify deployment is deferred until solving and animated step-by-step solution playback are ready.
 
 ## Local setup and checks
 

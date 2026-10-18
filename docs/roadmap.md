@@ -93,6 +93,12 @@ Netlify deployment is deferred until the solving workflow and animated playback 
 
 The next proposed stage is exact solved-state detection and solver design, followed by an independent solution-search implementation. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
 
+## Final functional goal: photos to a solution
+
+Photo-based reconstruction of the physical puzzle is required, not an optional extension. Implement it last among the functional stages, after independent search and animated playback are verified. The current virtual controls provide known test states and visualization for that workflow.
+
+The solver must accept a validated discrete state without move history; recognition should be a separate input boundary, not part of search or rendering. The photo stage must establish the capture protocol on the owner's cube, handle occlusion and ambiguity, show a candidate state for confirmation/correction, and validate it before solving. One arbitrary image is not assumed sufficient. No recognition model or external service is selected yet.
+
 ## Stage sequence
 
 | Stage | Result | Main check |
@@ -105,9 +111,10 @@ The next proposed stage is exact solved-state detection and solver design, follo
 | 6. Animated manual turns | Move controls, visible rotation, and highlighted moving pieces | The final frame matches the discrete state; conflicting concurrent actions are blocked |
 | 7. History and undo | Undo the latest move | The exact previous state is restored |
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
-| 9. Solution search | An algorithm independent of UI | Applying the returned sequence solves the input state |
+| 9. Solution search | An algorithm independent of UI and move history | Applying the returned sequence solves a valid input state without access to its generating moves |
 | 10. Step-by-step solution | Localized instructions and animated playback | Orientation cues, highlights, and state agree at every step in both languages |
-| 11. Deployment | Publish the solving workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
+| 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
+| 12. Deployment | Publish the photo-to-solution workflow on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
 Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Verify that language switching preserves solution progress when playback is implemented.
 

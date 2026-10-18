@@ -4,6 +4,8 @@
 
 MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. The application will provide its interface and solution instructions in English and Ukrainian. The owner is a frontend developer experienced in React and TypeScript who wants to review changes, understand the architecture, and control decisions.
 
+The final goal is photos of a physical cube → reconstructed and confirmed state → solution search → animated instructions. Photo input is required but deliberately deferred until the solver and playback work. The virtual cube is a foundation, not the complete product. Do not assume one photo is sufficient or that move history will be available to the solver.
+
 Before working, read [README.md](README.md), the [product description](docs/product.md), and the [roadmap](docs/roadmap.md). Do not treat planned features as already implemented.
 
 ## Collaboration
@@ -24,7 +26,7 @@ Before working, read [README.md](README.md), the [product description](docs/prod
 - Use React, TypeScript, and Vite, with Three.js and React Three Fiber for rendering.
 - Three.js replaces the initial solved-only SVG renderer to handle depth and occlusion during shape-changing turns. No separate animation-timing library is currently needed.
 - Before adding any further graphics or animation tool, explain the specific problem it solves.
-- Separate puzzle state/move rules, solution search, geometry/projection/animation, and UI.
+- Separate puzzle state/move rules, solution search, geometry/projection/animation, and UI. When photo input is implemented, keep recognition as a separate boundary that produces a candidate state for confirmation and validation; do not scaffold it beforehand.
 - Keep the mathematical model and solution search independent of React, Three.js, and the selected language. Convert domain data to Three.js objects only in the rendering layer.
 - Introduce abstractions and dependencies only when there is a concrete need.
 - Preserve each piece's exact local dimensions along all three axes during turns. Do not equate similar dimensions or determine solved status from an approximate silhouette.
@@ -40,7 +42,7 @@ Add meaningful tests alongside the relevant functionality:
 - four quarter-turns restore the state;
 - turns preserve piece identities and local dimensions;
 - animation endpoints match exact move geometry, and duplicate/stale completion callbacks cannot commit twice;
-- applying a returned solution actually solves the input state;
+- applying a returned solution actually solves the input state without requiring its move history;
 - language switching updates user-facing text without changing puzzle state or solution progress.
 
 Run the checks available for the current stage. Report what was verified and what could not be verified; never claim that unrun tests passed.
