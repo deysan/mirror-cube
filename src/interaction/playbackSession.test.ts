@@ -81,7 +81,7 @@ describe("step-by-step solution transaction", () => {
     expect(session.history.reduce(applyMove, initial)).toEqual(session.puzzle);
   });
 
-  it("plays actual history-free depth-eleven solver results through all 24 global frames", () => {
+  it("plays and navigates history-free depth-eleven solver results through all 24 global frames", () => {
     const wholeStates = [initial];
     const seen = new Set([JSON.stringify(initial.corners[0]!.orientation)]);
     for (const state of wholeStates) for (const [a, b] of [["R", "L"], ["U", "D"]] as const) {
@@ -97,6 +97,17 @@ describe("step-by-step solution transaction", () => {
       expect(result.moves).toHaveLength(11);
       let session = withSolution(state, result.moves);
       for (let index = 0; index < result.moves.length; index++) session = finish(reduce(session, next));
+      expect(session.playback?.status).toBe("complete");
+      expect(session.history).toEqual(result.moves);
+      expect(isSolved(session.puzzle)).toBe(true);
+      session = reduce(session, { type: "solution-go", completed: 0 });
+      for (let index = 0; index < 11; index++) session = finish(session);
+      expect(session.activeTurn).toBeNull();
+      expect(session.puzzle).toEqual(state);
+      expect(session.history).toEqual([]);
+      session = reduce(session, { type: "solution-go", completed: 11 });
+      for (let index = 0; index < 11; index++) session = finish(session);
+      expect(session.activeTurn).toBeNull();
       expect(session.playback?.status).toBe("complete");
       expect(session.history).toEqual(result.moves);
       expect(isSolved(session.puzzle)).toBe(true);

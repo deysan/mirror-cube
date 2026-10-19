@@ -2,7 +2,7 @@
 
 ## Scope
 
-The interface supports all six faces with clockwise/counterclockwise quarter-turns and half-turns. Four moving pieces are highlighted in amber while the others stay still. Completed moves are recorded in history and can be undone with animation. A generated sequence can also be executed as an animated scramble. Exact solved-state detection is available in the [domain layer](solver.md). The separate [worker-backed solve panel](solver-worker.md) shows verified solutions or an already-solved result without applying moves. The separate [playback transaction](solution-playback.md) can execute that solution one animated step at a time. Redo is not implemented.
+The interface supports all six faces with clockwise/counterclockwise quarter-turns and half-turns. Four moving pieces are highlighted in amber while the others stay still. Completed moves are recorded in history and can be undone with animation. A generated sequence can also be executed as an animated scramble. Exact solved-state detection is available in the [domain layer](solver.md). The separate [worker-backed solve panel](solver-worker.md) shows verified solutions or an already-solved result without applying moves. The separate [playback transaction](solution-playback.md) can execute individual steps, navigate to selected positions through intermediate forward/inverse turns, or demonstrate a completed step without committing another move. Confirmed reset restores the default solved state. General history redo is not implemented.
 
 Face names refer to the fixed puzzle frame described in [the move-model guide](moves.md). Clockwise is always viewed directly from the chosen face, not from the current camera. The controls explain that F is the left visible side, R the right, and U the top in the isometric view. Rear faces remain partially hidden; the camera cannot be rotated yet.
 
@@ -20,27 +20,29 @@ Three responsibilities are kept separate:
 
 1. Controls remain disabled until the scene reports readiness.
 2. A start action is accepted only when the scene is ready and no turn is active. The reducer enforces this even if events arrive before the UI updates.
-3. The pending move gets a monotonically increasing ID and a `manual`, `undo`, `scramble`, or `solution` kind. The committed puzzle and history do not change yet.
+3. The pending move gets a monotonically increasing ID and a `manual`, `undo`, `scramble`, `solution`, `solution-back`, or `replay` kind. The committed puzzle and history do not change yet.
 4. The renderer selects four pieces by their current slots and places them in a temporary group at the mechanism origin.
 5. `useFrame` rotates that group. At the endpoint it reports the pending ID once.
-6. The reducer accepts completion only for the current pending ID, applies the exact move, and updates history. In the same transition it either schedules the next scramble move with a fresh ID or clears the pending turn. Duplicate and stale callbacks cannot advance the sequence.
+6. The reducer accepts completion only for the current pending ID. Committing turns apply the exact move and update history; demonstration replay only clears its temporary visual turn. In the same transition a scramble or solution-target traversal can schedule its next move with a fresh ID. Duplicate and stale callbacks cannot advance the sequence.
 7. The temporary group is replaced for the next move or removed after the last one. Controls become available only when the entire operation finishes.
 
-There is no user-input queue: clicks during movement are ignored, not replayed later. Only the generated scramble sequence is scheduled automatically. Changing the language keeps the pending ID, puzzle state, and animation component intact, so it does not restart the movement.
+There is no user-input queue: clicks during movement are ignored, not replayed later. Only generated scramble sequences and explicitly selected solution-target traversals schedule subsequent turns automatically. Changing the language keeps the pending ID, puzzle state, and animation component intact, so it does not restart the movement.
 
-Solution search cannot overlap a turn or scramble. During worker search, the UI and reducer block manual turns, undo, and scrambling. Starting an accepted manual turn, undo, or scramble clears a previous search/playback plan before animation begins. A solution-step turn retains the plan and advances its cursor only after completion. Scene failure also clears that result and terminates pending worker work, without changing the committed state/history.
+Solution search cannot overlap a turn or scramble. During worker search, the UI and reducer block manual turns, undo, and scrambling. Starting an accepted manual turn, undo, or scramble clears a previous search/playback plan before animation begins. A solution navigation turn retains the plan and changes its cursor only after completion. Replay supplies a temporary display state but never updates the committed puzzle/history/cursor. Scene failure also clears that result and terminates pending worker work, without changing the committed state/history.
 
 The status says “Ready to turn” or describes the active move; it does not claim the puzzle is solved based on appearance. The measurements panel explicitly describes the solved dimensions, not the current bounding box.
 
 ## History and undo
 
-History is a chronological array of completed manual, scramble, and solution `Move` values, not snapshots or animation frames. Adjacent moves are not combined or automatically canceled. The UI displays a reversed copy, keeping the latest entry first with its original sequence number, standard notation, and localized explanation. Long lists have a bounded height and keyboard scrolling.
+History is a chronological array of completed manual, scramble, and forward solution `Move` values, not snapshots or animation frames. Adjacent moves are not combined or automatically canceled. The UI displays a reversed copy, keeping the latest entry first with its original sequence number, standard notation, and localized explanation. Long lists have a bounded height and keyboard scrolling.
 
 An undo request is accepted only when the scene is ready, no animation is active, and history is nonempty. The reducer computes `inverseMove` for the final entry and creates a pending turn with kind `undo`. The selected manual angle does not affect undo. The renderer needs no separate undo animation path: it animates the supplied move as usual.
 
 On successful completion:
 
-- a manual, scramble, or solution turn appends its move to history;
+- a manual, scramble, or forward solution turn appends its move to history;
+- backward solution navigation removes the corresponding final history entry;
+- replay is display-only and leaves the history and committed puzzle unchanged;
 - an undo removes the last entry without appending the inverse.
 
 Until that completion, the history and committed puzzle remain unchanged. Both manual and undo requests are blocked during either kind of animation. The status distinguishes an undo from a manual turn and describes the actual inverse being animated. Language switching preserves both history and the pending transaction.

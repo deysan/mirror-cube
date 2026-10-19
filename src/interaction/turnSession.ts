@@ -14,13 +14,17 @@ export interface SolutionPlayback {
   /** The exact committed snapshot for which the next move is valid. */
   readonly expectedState: PuzzleState;
   readonly status: "ready" | "complete" | "failed";
+  /** Number of completed steps requested by a navigation action, or no queued target. */
+  readonly target: number | null;
 }
 
-export interface PendingTurn {
+export type PendingTurn = {
   readonly id: number;
   readonly move: Move;
-  readonly kind: "manual" | "undo" | "scramble" | "solution";
-}
+} & (
+  | { readonly kind: "manual" | "undo" | "scramble" | "solution" | "solution-back" }
+  | { readonly kind: "replay"; readonly previewState: PuzzleState }
+);
 
 export interface ScrambleProgress {
   readonly moves: readonly Move[];
@@ -47,6 +51,9 @@ export type TurnAction =
   | { readonly type: "scramble"; readonly moves: readonly Move[] }
   | { readonly type: "complete"; readonly id: number }
   | { readonly type: "solution-next" }
+  | { readonly type: "solution-go"; readonly completed: number }
+  | { readonly type: "solution-replay" }
+  | { readonly type: "reset"; readonly state: PuzzleState }
   | { readonly type: "find-solution" }
   | { readonly type: "cancel-search" }
   | { readonly type: "search-result"; readonly response: SolverResponse };
@@ -58,6 +65,25 @@ export function createTurnSession(puzzle: PuzzleState): TurnSession {
   };
 }
 
+function navigateSolution(session: TurnSession, target: number): TurnSession {
+  const playback = session.playback;
+  if (session.sceneStatus !== "ready" || session.activeTurn || session.search.status === "running"
+    || !playback || playback.status === "failed" || !Number.isInteger(target)
+    || target < 0 || target > playback.moves.length || target === playback.completed) return session;
+  if (playback.expectedState !== session.puzzle) {
+    return { ...session, playback: { ...playback, status: "failed", target: null } };
+  }
+  const backwards = target < playback.completed;
+  const move = playback.moves[backwards ? playback.completed - 1 : playback.completed]!;
+  return {
+    ...session,
+    playback: { ...playback, target },
+    activeTurn: { id: session.nextTurnId, move: backwards ? inverseMove(move) : move,
+      kind: backwards ? "solution-back" : "solution" },
+    nextTurnId: session.nextTurnId + 1,
+  };
+}
+
 /** UI transaction state, separate from both puzzle rules and animation frames. */
 export function turnSessionReducer(session: TurnSession, action: TurnAction): TurnSession {
   switch (action.type) {
@@ -66,6 +92,11 @@ export function turnSessionReducer(session: TurnSession, action: TurnAction): Tu
     case "scene-failed":
       // Cancel visual/search work; the committed puzzle and history are unchanged.
       return { ...session, sceneStatus: "failed", activeTurn: null, scramble: null, search: { status: "idle" }, playback: null };
+    case "reset":
+      if (session.sceneStatus !== "ready" || session.activeTurn || session.search.status === "running") return session;
+      // Keep monotonically increasing IDs: callbacks from before reset must stay obsolete.
+      return { ...session, puzzle: action.state, history: [], playback: null, scramble: null,
+        search: { status: "idle" } };
     case "find-solution":
       if (session.sceneStatus !== "ready" || session.activeTurn || session.search.status === "running") return session;
       return {
@@ -84,9 +115,23 @@ export function turnSessionReducer(session: TurnSession, action: TurnAction): Tu
         ...session, search: { status: "done", result },
         playback: result.status === "solution" && result.moves.length > 0 ? {
           moves: result.moves.map((move) => ({ ...move })), completed: 0,
-          expectedState: session.puzzle, status: "ready",
+          expectedState: session.puzzle, status: "ready", target: null,
         } : null,
       };
+    }
+    case "solution-go":
+      return navigateSolution(session, action.completed);
+    case "solution-replay": {
+      const playback = session.playback;
+      if (session.sceneStatus !== "ready" || session.activeTurn || session.search.status === "running"
+        || !playback || playback.status === "failed" || playback.completed === 0) return session;
+      if (playback.expectedState !== session.puzzle) {
+        return { ...session, playback: { ...playback, status: "failed", target: null } };
+      }
+      const move = playback.moves[playback.completed - 1]!;
+      return { ...session, nextTurnId: session.nextTurnId + 1,
+        activeTurn: { id: session.nextTurnId, kind: "replay", move,
+          previewState: applyMove(session.puzzle, inverseMove(move)) } };
     }
     case "solution-next": {
       const playback = session.playback;
@@ -133,24 +178,32 @@ export function turnSessionReducer(session: TurnSession, action: TurnAction): Tu
       };
     }
     case "complete": {
-      // Commit exactly once. Only scrambles auto-schedule another turn;
-      // solution playback waits for a new explicit activation.
+      // Commit exactly once; navigation/scramble schedule the next turn atomically.
+      // A demonstration never commits its visual starting snapshot or move.
       if (!session.activeTurn || session.activeTurn.id !== action.id) return session;
-      if (session.activeTurn.kind === "solution") {
+      if (session.activeTurn.kind === "replay") {
         const playback = session.playback;
-        if (!playback || playback.status !== "ready" || playback.expectedState !== session.puzzle) {
-          return { ...session, activeTurn: null, playback: playback ? { ...playback, status: "failed" } : null };
+        return { ...session, activeTurn: null, playback: playback && playback.expectedState !== session.puzzle
+          ? { ...playback, status: "failed", target: null } : playback };
+      }
+      if (session.activeTurn.kind === "solution" || session.activeTurn.kind === "solution-back") {
+        const playback = session.playback;
+        if (!playback || playback.status === "failed" || playback.expectedState !== session.puzzle) {
+          return { ...session, activeTurn: null, playback: playback ? { ...playback, status: "failed", target: null } : null };
         }
+        const backwards = session.activeTurn.kind === "solution-back";
         const puzzle = applyMove(session.puzzle, session.activeTurn.move);
-        const completed = playback.completed + 1;
-        return {
+        const completed = playback.completed + (backwards ? -1 : 1);
+        const committed: TurnSession = {
           ...session, puzzle, activeTurn: null,
-          history: [...session.history, session.activeTurn.move],
+          history: backwards ? session.history.slice(0, -1) : [...session.history, session.activeTurn.move],
           playback: {
-            ...playback, completed, expectedState: puzzle,
+            ...playback, completed, expectedState: puzzle, target: null,
             status: completed === playback.moves.length ? (isSolved(puzzle) ? "complete" : "failed") : "ready",
           },
         };
+        return playback.target !== null && completed !== playback.target
+          ? navigateSolution(committed, playback.target) : committed;
       }
       const completed = session.scramble ? session.scramble.completed + 1 : 0;
       const next = session.scramble?.moves[completed];

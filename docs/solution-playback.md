@@ -1,74 +1,82 @@
-# Step-by-step animated solution playback
+# Animated solution playback, navigation, and replay
 
-## Scope and user workflow
+## User workflow
 
-The manual-input workflow now supports **turn/scramble → find solution → execute animated steps**. A found solution does not move the puzzle by itself. “Execute next step” starts exactly one move from the verified world-frame sequence. There is no automatic play-all mode or queued user input.
+The manual workflow supports **turn/scramble → find solution → execute or navigate animated steps**. Finding a solution does not move the puzzle by itself. The controls and guidance are available in English and Ukrainian.
 
-The panel shows the total sequence length, completed count, current step, face, direction/angle, and orientation guidance in English and Ukrainian. The current list row has an amber accent, a textual label, and `aria-current="step"`; completed rows have a textual completion label. Live regions announce progress. The bounded, keyboard-scrollable list reveals its current row without scrolling the page away from the cube.
+- **Execute next step:** perform exactly one verified move and wait.
+- **Select a numbered step:** reach the state **after** that step, animating every intermediate move. Selecting step 3 from the start performs steps 1, 2, and 3. Selecting step 1 from position 3 reverses steps 3 and 2, in that order. Selecting the current position is disabled.
+- **Back to solution start:** reverse the completed solution prefix, without undoing the input/scramble that preceded the solution.
+- **Show step again N:** demonstrate the last completed step from its starting pose. This is a visual replay, not another application of the move. It changes neither committed puzzle, history, nor progress. To review another step, first navigate to its position, then replay it.
+- **Reset cube:** restore the default, canonically oriented solved state and delete history and the solution, only after an explicit browser confirmation. Cancelling leaves the session untouched. Reset preserves language, geometry definitions, the scene instance, and monotonic request/turn IDs. It is unavailable during a turn, traversal, replay, search, or scene failure/loading. Reset is not undoable and does not reload the page.
 
-Clockwise is viewed directly at the named face, including hidden L/D/B faces. The frame remains fixed: U on top, F toward the user, and R on the right; in the isometric view F is the left visible side and R the right. Keep that orientation throughout the sequence. Starting a step brings an offscreen canvas into view using the same behavior as manual turns.
+Navigation changes the virtual state; the physical cube must be kept in sync with those turns. Replay is explicitly labeled as a **demonstration**: do not repeat the physical turn if it has already been performed. Its visual starting pose is shown immediately, followed by the normal forward animation; there is no extra animated inverse turn to mistake for another instruction.
 
-The renderer highlights and rotates the four current-layer pieces, then displays their exact resulting pose. Timing, reduced motion, camera framing, and interpolation are unchanged. A half-turn counts as one solution step.
+The panel shows the current move, completed count, navigation target, and a “You are here” position marker. During backward traversal, instructions describe the actual inverse move. During replay they identify the demonstrated step, not the next uncompleted step. The solved-completion announcement is withheld while a backward turn or replay is being displayed.
 
-Both input routes share this mechanism: the current manual workflow and future confirmed photo-derived states. Photo input and physical capture/orientation calibration are **not implemented**. This stage does not claim recognition or physical-puzzle capture verification.
+Rows are native keyboard-operable buttons, including their visible step numbers. The active instruction row uses `aria-current="step"`, amber styling, and a textual marker. Live regions announce progress. The bounded list reveals its current row locally, including after language changes, without pulling the page away from the cube. Starting an operation brings an offscreen canvas into view.
 
-## Transaction model
+Clockwise is viewed directly at the named face, including hidden L/D/B faces. Keep U on top, F toward the user, and R on the right. In the fixed isometric view F is the left visible side and R the right. The renderer highlights the four current-layer pieces and preserves their exact dimensions. Existing timing, reduced-motion behavior, camera framing, and interpolation are unchanged. A half-turn counts as one step.
 
-`src/interaction/turnSession.ts` adds `SolutionPlayback` alongside search and animation state:
+Both input routes share this mechanism: manual input now and future confirmed photo states. Photo reconstruction and physical capture/orientation calibration are **not implemented**.
 
-- `moves`: an independently copied sequence from an accepted nonempty solution;
-- `completed`: the number of committed solution steps, initially zero;
-- `expectedState`: the immutable committed puzzle reference to which the next step applies;
-- `status`: `ready`, `complete`, or `failed`.
+## Interaction transaction
 
-An empty solution remains an already-solved search result and has no playback controls. Search failures and budget limits do not create a plan. The existing worker identity/request/snapshot checks still govern which search result may be accepted.
+`src/interaction/turnSession.ts` owns `SolutionPlayback`:
 
-`solution-next` is accepted only with a ready scene, no active turn or search, a ready plan, an exact snapshot-reference match, and a remaining move. It creates a `PendingTurn` with kind `solution` and a new monotonic turn ID. The move comes from the plan's cursor, **not** the manual angle selector. Starting changes neither puzzle nor history nor completed count.
+- `moves`: an independent copy of the accepted nonempty, verified world-frame solution;
+- `completed`: the current solution-prefix length;
+- `expectedState`: the exact committed puzzle reference to which navigation/replay applies;
+- `status`: `ready`, `complete`, or `failed`;
+- `target`: the requested prefix length for a multi-turn traversal, or `null`.
 
-The renderer uses the existing animation path, unchanged. A matching `complete` action:
+Empty solutions remain already-solved results without playback. Search errors and limits do not create plans. Existing worker identity/request/snapshot guards still determine which result can be accepted. The original result is not re-searched or restarted from zero at intermediate positions.
 
-1. Checks that the expected committed snapshot still matches.
-2. Applies the pending move with the exact domain `applyMove` rules.
-3. Appends that move to chronological history.
-4. Advances `completed` and `expectedState` atomically with the puzzle update.
-5. Clears the active turn and waits for another explicit activation.
-6. After the last move, requires exact `isSolved(puzzle)` before setting `complete`.
+`solution-next` starts one forward `solution` turn. `solution-go` validates an integer target in `0..moves.length`, selects the forward or inverse move needed to approach it, and creates a `solution` or `solution-back` pending turn. Commands require a ready scene, no active turn/search, a nonfailed plan, and a matching expected snapshot. Every turn receives a new monotonic ID.
 
-The normal worker has already verified the sequence. The final predicate is an additional safeguard against falsely announcing success merely because a cursor reached the end. It accepts all 24 proper whole-cube orientations; the goal need not have the initial global orientation. A snapshot mismatch or unsolved final state yields a localized playback failure, never a success announcement or an automatic repair/search.
+Only a matching `complete` callback applies an exact domain move. Puzzle, history, prefix length, and expected snapshot update atomically:
 
-The original search result describes the original solution, not a new solution from each intermediate state. Playback owns the cursor and expected state; it never restarts that result at index zero or runs the worker for each step. Duplicate/obsolete worker responses and animation completions cannot reset or advance playback.
+- forward turns append their solution move to chronological history and increment the cursor;
+- backward turns apply the inverse, remove the corresponding last history entry, and decrement the cursor;
+- if a requested target remains, the next turn is scheduled in the same reducer transition, without an unlocked gap;
+- reaching the target clears it and waits for another user action;
+- reaching the last solution position requires exact `isSolved` before announcing success, including all 24 proper global frames.
 
-## History, interruptions, and controls
+The input history is never trimmed by solution navigation. Navigating a state originally supplied without history works identically: its history consists only of the current solution prefix. Inverse navigation is a traversal of a verified plan, **not** a history-reversal solving algorithm. Duplicate/obsolete callbacks cannot commit again or advance an extra step. Repeated navigation clicks while moving are rejected, not queued or used to retarget.
 
-During a step, next-step, manual turns/angle selection, undo, scramble, and search controls are disabled. The reducer also rejects conflicting actions. Language switching changes only text; it preserves the pending turn ID, exact state, progress, and scene instance.
+## Non-committing replay
 
-Between steps, ordinary controls remain available:
+`solution-replay` requires a valid plan and at least one completed step. It creates a pending `replay` turn carrying `previewState`, computed with the exact inverse of the last completed solution move. `session.puzzle`, history, and playback remain unchanged.
 
-- a manual turn or scramble clears the plan when the new animation starts;
-- undo clears the plan, then animates the inverse of the latest recorded move, including a solution step;
-- a new search clears the plan and searches the current partially solved snapshot.
+`src/App.tsx` passes this temporary state to the existing renderer only while replay is active. The normal animation applies the original move visually and ends at the already committed pose. Matching completion only clears the preview turn; it never appends a move or advances progress. The expected snapshot is checked on start and completion. The worker always receives the committed puzzle, never a preview; search is blocked throughout replay.
 
-There is no dedicated backward-step/resume-after-undo behavior: find a new solution after undoing. Failed/no-op requests, such as an empty scramble, do not discard a plan. Completed solution moves remain ordinary history entries; no merging or cancellation is introduced.
+A completed solution can be replayed without becoming unsolved in the domain state. Language changes preserve the same preview, turn ID, and progress. Context failure or a late completion cannot promote the preview to committed state.
 
-Scene/context failure discards the plan and unfinished turn, preserving exactly the committed puzzle and history prefix. Late completion callbacks are ignored. Reload resets the entire session. There is no recovery of a pending visual turn, persistent progress, autoplay, adjustable speed, or mid-turn pause/cancel control.
+## History, interruptions, and reset
+
+All conflicting controls, including reset and timeline buttons, remain locked during an operation. Language switching remains available. Manual turns, ordinary undo, scrambling, or new search between operations discard the plan. Ordinary undo still reverses the latest recorded move but does not preserve the solution cursor; use solution navigation to retain the plan.
+
+Scene failure discards the plan, unfinished turn/preview, and queued target. It retains exactly the committed puzzle/history prefix, including any completed backward transitions. No incomplete movement is applied. Reload clears the session; reset is a separate confirmed action that preserves language and healthy idle worker resources.
+
+The UI supplies a freshly created solved snapshot for reset using the existing cube definitions. The reducer clears history/search/playback but keeps `nextTurnId` and `nextSearchId`. A delayed pre-reset animation completion or worker response therefore cannot be mistaken for a new operation.
+
+There is no mid-turn pause/cancel, adjustable speed, persisted progress, or general history redo/jump. A selected solution target is a bounded automatic sequence; no sequence starts merely because a search finished.
 
 ## Files and boundaries
 
-- `src/interaction/turnSession.ts`: pure playback transaction, snapshot checks, history commits, and final exact goal check.
-- `src/components/SolutionPanel.tsx`: localized controls, instructions, progress, row labels, and list-local scrolling; it does not compute moves.
-- `src/App.tsx`: typed action wiring, current-step scene status, and existing canvas visibility behavior.
-- `src/i18n/messages.ts` and `src/styles.css`: bilingual copy and current-step presentation.
+- `src/interaction/turnSession.ts`: pure transactions, snapshot guards, navigation scheduling, replay isolation, and reset.
+- `src/components/SolutionPanel.tsx`: localized controls, instructions, position markers, and list-local scrolling; no move computation.
+- `src/App.tsx`: actions, display-only preview selection, localized native reset confirmation, and canvas visibility.
+- `src/i18n/messages.ts` and `src/styles.css`: bilingual copy and accessible presentation.
 
-The solver/worker, puzzle move rules, geometry, and Three.js animation implementation are unchanged. No dependencies or separate playback animation engine were added.
+Puzzle rules, solver/worker implementation, and Three.js animation code are unchanged. No dependencies or separate animation engine were added.
 
 ## Verification
 
-Automated tests cover all 18 face/angle choices, immutable pre-completion state, exactly-once commits, increasing turn IDs, no auto-advance, active-operation locks, plan invalidation, undo, snapshot mismatches before start and commit, and scene failure after each prefix of a mixed solution. Actual history-free depth-eleven solver results are played through all 24 global frames and checked with `isSolved`. An injected incorrect sequence cannot trigger a completed/solved announcement.
+Automated tests cover all 18 move/replay types, all position pairs in a mixed solution, exact forward/backward intermediate poses and history, history-free input, duplicate callbacks, operation locks, invalid targets, snapshot mismatches, wrong-final-state rejection, and failure during forward/backward navigation and replay. Real depth-eleven solver results through all 24 global frames are tested with individual steps and full backward/forward navigation. Replay checks preserve the committed puzzle/history/progress references and verify that its visual endpoint equals the committed state.
 
-UI tests cover current/completed row markers, English/Ukrainian instructions and final messages, preserved animation/progress across language changes, history counts, ignored duplicate callbacks, worker reuse without per-step requests, partial undo/re-search, empty solutions, and failure handling. jsdom uses controlled scene/worker stubs, not GPU animation.
+UI tests cover clickable rows, automatic intermediate progression, inverse instructions, start navigation, replay including after final completion, language changes during operations, reset confirmation/cancellation, stable scene/geometry, and stale callback/request rejection after reset. jsdom uses controlled scene and worker stubs; it does not render WebGL.
 
-Chrome checks in both Vite development and production preview at 1280, 390, and 320 px exercise native workers and real animation: keyboard activation, amber moving-layer highlights, locks, language changes during motion, explicit pauses between steps, and exact history increments. For R, U′, F2 followed by its solution, the final canvas is pixel-identical to the initial solved view. Separate cases check mapped negative world faces, an eleven-step reduced-motion solution, current-row visibility inside the scrollable list, partial undo/re-search, and context loss during a pending step. Final committed snapshots are independently checked by exact domain replay and a subsequent empty solver result. No horizontal overflow or uncaught exceptions was observed. These are local checks, not a committed cross-browser end-to-end suite.
+Chrome checks in development and production preview at 1280, 390, and 320 px exercise real workers/animations and native confirmation dialogs: keyboard selection of step 3, every intermediate history commit with continuous locking, backward navigation, replay at step 2, language switching, reset cancellation/confirmation, worker reuse, and exact state comparison against independent domain replay. Canvas screenshots before/after demonstration are pixel-identical; returning to the solution start restores its original image, and reset restores the initial solved image. An eleven-step reduced-motion traversal runs forward and back; context loss during replay preserves the committed history. No horizontal overflow or uncaught exceptions was observed. These are local checks, not a committed cross-browser end-to-end suite.
 
-Run `npm test`, `npm run typecheck`, and `npm run build`. For manual review, scramble, find a solution, and execute each step while switching languages. Confirm that the count and history advance only after each animation, the app waits between steps, and the solved message appears only at completion. Undo a completed step and confirm that the old plan is removed before finding a fresh solution.
-
-The manual solve/playback route is implemented locally. Deployment remains deferred and requires separate approval; the complete planned release includes both input routes. The next proposed stage is to agree and validate the guided photo-capture/reconstruction/confirmation protocol on the owner's puzzle, before choosing recognition tools or implementing photo input.
+Run `npm test`, `npm run typecheck`, and `npm run build`. Manually scramble, find a solution, select a later step, return to an earlier one, replay it, and compare the physical puzzle. Test both reset cancellation and confirmation in each language. Deployment and photo input remain separate deferred stages requiring owner review.

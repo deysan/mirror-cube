@@ -236,6 +236,10 @@ figcaption {
   flex: 1 1 140px;
 }
 
+.playback-actions button {
+  flex-basis: 120px;
+}
+
 .solution-instruction {
   padding: 14px;
   margin-bottom: 16px;
@@ -248,6 +252,39 @@ figcaption {
   border-left: 3px solid #886021;
   padding-left: 8px;
   background: #faf0da;
+}
+
+.reset-controls {
+  margin: -8px 0 28px;
+}
+
+.solution-step {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.solution-step:hover:not(:disabled) {
+  background: #e1e9e5;
+}
+
+.solution-step:disabled {
+  cursor: not-allowed;
+}
+
+.solution-step:focus-visible {
+  outline: 3px solid #49675f;
+  outline-offset: -3px;
 }
 
 .solution-step-state {
@@ -263,6 +300,11 @@ figcaption {
   padding: 4px 8px 4px 36px;
   font-size: 14px;
   line-height: 1.6;
+}
+
+.solution-panel ol {
+  list-style: none;
+  padding: 4px 8px;
 }
 
 .move-history li,

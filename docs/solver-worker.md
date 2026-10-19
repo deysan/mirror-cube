@@ -6,7 +6,7 @@
 
 The solution panel shows an already-solved message, or a numbered list of moves in **execution order**, with notation, face names, and direction/angle descriptions. It also distinguishes invalid input, cancellation, depth/node/time limits, worker failure, and a request timeout. A limit never means “unsolvable.” The list is separate from newest-first move history.
 
-Finding a solution does **not** apply any moves or append history. [Animated solution playback](solution-playback.md) is now implemented separately: each step requires explicit activation and advances the plan only after its animation completes. Imported-state UI, photo recognition, and deployment remain deferred. “Ready to turn” still describes interaction readiness, not solvedness; the already-solved message appears only as a search result.
+Finding a solution does **not** apply any moves or append history. [Animated solution playback](solution-playback.md) is now implemented separately: the user activates one step or selects a target position; each intermediate move updates the plan only after its animation completes. Demonstration replay is display-only and never changes the committed state sent to the worker. Imported-state UI, photo recognition, and deployment remain deferred. “Ready to turn” still describes interaction readiness, not solvedness; the already-solved message appears only as a search result.
 
 ## Boundaries and data flow
 
@@ -34,7 +34,7 @@ The client accepts a response only from its current worker for its pending reque
 
 After completion, duplicate results cannot commit again. After cancellation/retry, old IDs cannot replace a newer search. Captured callbacks from terminated workers are ignored by worker identity even if their IDs match. Search never updates puzzle poses or move history.
 
-An accepted manual turn, undo, or scramble clears a previous result **when animation starts**, not only when it completes. Failed/no-op turn requests do not clear it. Scene failure clears search/result state and terminates pending work, preserving the committed puzzle/history. Starting a new search also discards any playback plan. Solution-step turns are a separate transaction that retains the verified sequence and advances its cursor; see the playback guide. Reload clears the session and result.
+An accepted manual turn, undo, or scramble clears a previous result **when animation starts**, not only when it completes. Failed/no-op turn requests do not clear it. Scene failure clears search/result state and terminates pending work, preserving the committed puzzle/history. Starting a new search also discards any playback plan. Solution-step turns are a separate transaction that retains the verified sequence and advances its cursor; see the playback guide. Confirmed reset clears the session's puzzle/history/plan but preserves monotonic search IDs and a healthy idle worker. Reset is blocked during active search. Reload clears the entire session and result.
 
 ## Cancellation, budgets, and failures
 

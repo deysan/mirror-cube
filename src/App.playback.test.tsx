@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { CubeScene } from "./components/CubeScene";
 import { messages } from "./i18n/messages";
-import { applyMove, type Move } from "./puzzle/moves";
+import { applyMove, inverseMove, type Move } from "./puzzle/moves";
 import { isSolved } from "./puzzle/solved";
 import type { SolverWorker } from "./interaction/solverClient";
 import type { SolverOutcome, SolverRequest, SolverResponse } from "./solver/workerProtocol";
@@ -166,5 +166,123 @@ describe("animated solution playback UI", () => {
     worker().reply({ status: "solution", moves: [], visitedNodes: 0 });
     expect(screen.getByText(en.searchSolved)).toBeDefined();
     expect(screen.queryByRole("button", { name: en.nextSolutionStep })).toBeNull();
+  });
+});
+
+describe("solution navigation, replay, and reset UI", () => {
+  it("selects a later row, animates every intermediate step, rewinds, and returns to the solution start", () => {
+    preparePlayback();
+    const start = scene().state;
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`${en.goToStep} 3:`) }));
+    for (let index = 0; index < 3; index++) {
+      const pending = scene().activeTurn!;
+      expect(pending.move).toEqual(moves[index]);
+      expect(screen.getByText(`${en.solutionProgress}: ${index}/3`)).toBeDefined();
+      for (const name of [en.resetCube, en.solutionStart, en.nextSolutionStep, new RegExp(`${en.goToStep} 1:`)]) {
+        expect(screen.getByRole("button", { name }).matches(":disabled")).toBe(true);
+      }
+      fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+      expect(scene().activeTurn).toBe(pending);
+      expect(screen.getByText(`${uk.goToStep}: 3/3`)).toBeDefined();
+      act(() => scene().onTurnComplete(pending.id));
+      const updated = scene().activeTurn;
+      act(() => scene().onTurnComplete(pending.id));
+      expect(scene().activeTurn).toBe(updated);
+      fireEvent.click(screen.getByRole("button", { name: "English" }));
+    }
+    expect(screen.getByText(en.solutionComplete)).toBeDefined();
+    expect(scene().activeTurn).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`${en.goToStep} 1:`) }));
+    expect(screen.queryByText(en.solutionComplete)).toBeNull();
+    for (const index of [2, 1]) {
+      expect(scene().activeTurn).toMatchObject({ kind: "solution-back", move: inverseMove(moves[index]!) });
+      act(() => scene().onTurnComplete(scene().activeTurn!.id));
+    }
+    expect(scene().activeTurn).toBeNull();
+    expect(scene().state).toEqual(applyMove(start, moves[0]!));
+    expect(screen.getByText("Recorded moves: 4")).toBeDefined();
+    expect(screen.getByText(`${en.solutionProgress}: 1/3`)).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: en.solutionStart }));
+    act(() => scene().onTurnComplete(scene().activeTurn!.id));
+    expect(scene().state).toEqual(start);
+    expect(screen.getByText("Recorded moves: 3")).toBeDefined();
+    expect(screen.getByText(`${en.solutionProgress}: 0/3`)).toBeDefined();
+    expect(screen.getByRole("button", { name: en.replayStep }).matches(":disabled")).toBe(true);
+    expect(worker().postMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("demonstrates a completed step from its starting pose, without changing history/progress or doubling the move", () => {
+    preparePlayback();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`${en.goToStep} 2:`) }));
+    for (let i = 0; i < 2; i++) act(() => scene().onTurnComplete(scene().activeTurn!.id));
+    const committed = scene().state;
+    fireEvent.click(screen.getByRole("button", { name: `${en.replayStep} 2` }));
+    const pending = scene().activeTurn!;
+    expect(pending.kind).toBe("replay");
+    expect(scene().state).toEqual(applyMove(committed, inverseMove(moves[1]!)));
+    expect(screen.getByText(`${en.solutionProgress}: 2/3`)).toBeDefined();
+    expect(screen.getByText("Recorded moves: 5")).toBeDefined();
+    expect(screen.getByRole("button", { name: en.resetCube }).matches(":disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+    expect(scene().activeTurn).toBe(pending);
+    expect(screen.getByText(`${uk.replayingStep} 2/3`)).toBeDefined();
+    act(() => scene().onTurnComplete(pending.id));
+    expect(scene().state).toBe(committed);
+    expect(screen.getByText(`${uk.solutionProgress}: 2/3`)).toBeDefined();
+    expect(screen.getByText("Записані ходи: 5")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: uk.nextSolutionStep }));
+    const finalId = scene().activeTurn!.id;
+    act(() => scene().onTurnComplete(pending.id));
+    expect(scene().activeTurn!.id).toBe(finalId);
+    act(() => scene().onTurnComplete(finalId));
+    expect(screen.getByText(uk.solutionComplete)).toBeDefined();
+    const solved = scene().state;
+    fireEvent.click(screen.getByRole("button", { name: `${uk.replayStep} 3` }));
+    expect(screen.queryByText(uk.solutionComplete)).toBeNull();
+    act(() => scene().onTurnComplete(scene().activeTurn!.id));
+    expect(scene().state).toBe(solved);
+    expect(screen.getByText("Записані ходи: 6")).toBeDefined();
+    expect(screen.getByText(uk.solutionComplete)).toBeDefined();
+    expect(worker().postMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns before reset; cancelling preserves everything and confirmation clears the plan/history without reloading", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    preparePlayback(); next();
+    const oldId = scene().activeTurn!.id;
+    act(() => scene().onTurnComplete(oldId));
+    const state = scene().state, canvas = screen.getByTestId("scene-canvas"), cube = scene().cube;
+    fireEvent.click(screen.getByRole("button", { name: en.resetCube }));
+    expect(confirm).toHaveBeenLastCalledWith(en.resetWarning);
+    expect(scene().state).toBe(state);
+    expect(screen.getByText("Recorded moves: 4")).toBeDefined();
+    expect(screen.getByText(`${en.solutionProgress}: 1/3`)).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Українська" }));
+    confirm.mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: uk.resetCube }));
+    expect(confirm).toHaveBeenLastCalledWith(uk.resetWarning);
+    expect(isSolved(scene().state)).toBe(true);
+    expect(screen.getByText(uk.historyEmpty)).toBeDefined();
+    expect(screen.getByText(uk.searchIdle)).toBeDefined();
+    expect(screen.queryByRole("list", { name: uk.solutionMoves })).toBeNull();
+    expect(screen.getByTestId("scene-canvas")).toBe(canvas);
+    expect(scene().cube).toBe(cube);
+    expect(document.documentElement.lang).toBe("uk");
+    const resetState = scene().state;
+    fireEvent.click(screen.getByRole("button", { name: "U Верхня" }));
+    expect(scene().activeTurn!.id).toBeGreaterThan(oldId);
+    act(() => scene().onTurnComplete(oldId));
+    expect(scene().state).toBe(resetState);
+    act(() => scene().onTurnComplete(scene().activeTurn!.id));
+    expect(screen.getByText("Записані ходи: 1")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: uk.findSolution }));
+    expect(worker().postMessage.mock.calls.at(-1)![0].id).toBe(2);
+    expect(screen.getByRole("button", { name: uk.resetCube }).matches(":disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: uk.resetCube }));
+    expect(confirm).toHaveBeenCalledTimes(2);
+    worker().reply({ status: "solution", moves, visitedNodes: 0 }, 1);
+    expect(screen.getByText(uk.searchRunning)).toBeDefined();
+    expect(WorkerStub.instances).toHaveLength(1);
+    confirm.mockRestore();
   });
 });

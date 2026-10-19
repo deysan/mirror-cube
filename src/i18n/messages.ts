@@ -39,6 +39,15 @@ export interface Messages {
   readonly solutionMoves: string;
   readonly solutionHint: string;
   readonly nextSolutionStep: string;
+  readonly goToStep: string;
+  readonly solutionStart: string;
+  readonly currentPosition: string;
+  readonly replayStep: string;
+  readonly replayingStep: string;
+  readonly rewindingStep: string;
+  readonly replayHint: string;
+  readonly resetCube: string;
+  readonly resetWarning: string;
   readonly solutionStep: string;
   readonly solutionProgress: string;
   readonly solutionComplete: string;
@@ -108,8 +117,17 @@ export const messages = {
     searchSolved: "The cube is already solved. No moves are needed.",
     solutionCount: "Total solution moves",
     solutionMoves: "Solution moves in execution order",
-    solutionHint: "Execute one step at a time. Completed steps enter history. A manual turn, undo, scramble, or new search clears this plan. A half-turn counts as one move.",
+    solutionHint: "Select a numbered step to reach the state after that step. All intermediate turns animate; going back reverses them and removes their history entries. Manual turns, undo, scrambling, or a new search clear this plan.",
     nextSolutionStep: "Execute next step",
+    goToStep: "Go to state after step",
+    solutionStart: "Back to solution start",
+    currentPosition: "You are here",
+    replayStep: "Show step again",
+    replayingStep: "Demonstrating step",
+    rewindingStep: "Reversing step",
+    replayHint: "Replay is a demonstration only: it shows the last completed step again from its starting pose, without changing progress or history. Do not repeat the turn on your physical cube if you already did it. To review another step, go to it first.",
+    resetCube: "Reset cube",
+    resetWarning: "Return the virtual cube to its default solved position? All move history and the current solution will be deleted. This cannot be undone.",
     solutionStep: "Solution step",
     solutionProgress: "Completed steps",
     solutionComplete: "Solution complete. The cube is solved.",
@@ -187,8 +205,17 @@ export const messages = {
     searchSolved: "Кубик уже складений. Ходи не потрібні.",
     solutionCount: "Усього ходів розв’язку",
     solutionMoves: "Ходи розв’язку в порядку виконання",
-    solutionHint: "Виконуйте по одному кроку. Завершені кроки потрапляють до історії. Ручний поворот, скасування ходу, перемішування чи новий пошук очищує цей план. Півоберту рахується як один хід.",
+    solutionHint: "Оберіть номер кроку, щоб перейти до стану після нього. Усі проміжні ходи анімуються; перехід назад виконує зворотні ходи та видаляє їхні записи з історії. Ручний поворот, скасування ходу, перемішування чи новий пошук очищує цей план.",
     nextSolutionStep: "Виконати наступний крок",
+    goToStep: "Перейти до стану після кроку",
+    solutionStart: "До початку розв’язку",
+    currentPosition: "Ви тут",
+    replayStep: "Повторити показ кроку",
+    replayingStep: "Демонстрація кроку",
+    rewindingStep: "Зворотний хід кроку",
+    replayHint: "Повтор — лише демонстрація: останній виконаний крок показується з його початкового положення без зміни прогресу чи історії. Не повторюйте хід на фізичному кубику, якщо вже зробили його. Для перегляду іншого кроку спочатку перейдіть до нього.",
+    resetCube: "Скинути кубик",
+    resetWarning: "Повернути віртуальний кубик у початкове складене положення? Усю історію ходів і поточний розв’язок буде видалено. Цю дію неможливо скасувати.",
     solutionStep: "Крок розв’язку",
     solutionProgress: "Завершено кроків",
     solutionComplete: "Розв’язок виконано. Кубик складений.",

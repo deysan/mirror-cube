@@ -10,7 +10,7 @@ The interface and step-by-step solution instructions support **English and Ukrai
 
 The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
-Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data validation, compact coordinates, transition/distance tables, and IDA* search now power a worker-backed “Find solution” button. Search verifies each result with exact domain moves, supports cancellation and budgets, and displays bilingual results without changing the cube or history. An already-solved state is reported after search; there is no continuously updated solved badge. Verified solutions can now be executed one animated step at a time, with progress and exact final solvedness checks. There is no autoplay, redo, photo recognition, or public deployment yet. The original SVG renderer has been removed. Deployment remains deferred and requires separate approval; the complete planned release includes both input routes.
+Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data validation, compact coordinates, transition/distance tables, and IDA* search now power a worker-backed “Find solution” button. Search verifies each result with exact domain moves, supports cancellation and budgets, and displays bilingual results without changing the cube or history. An already-solved state is reported after search; there is no continuously updated solved badge. Verified solutions support individual steps, animated forward/backward navigation to a selected step, and non-committing step demonstrations, with exact progress and final solvedness checks. A confirmed reset restores the default solved position and clears history/solution. There is no general history redo, photo recognition, or public deployment yet. The original SVG renderer has been removed. Deployment remains deferred and requires separate approval; the complete planned release includes both input routes.
 
 ## Local setup and checks
 
@@ -129,7 +129,13 @@ See [the worker/UI guide](docs/solver-worker.md) for lifecycle, retry costs, acc
 
 After finding a nonempty solution, “Execute next step” animates one verified move, independently of the manual angle selection. The panel shows the current step, orientation/direction guidance, and completed count in both languages. The current row is highlighted and marked with `aria-current="step"`; long lists reveal that row without pulling the page away from the cube.
 
-Puzzle state, history, and progress update together only after the matching animation completes. The app then waits for another explicit activation. After the final step it verifies `isSolved` before announcing success. Between steps, a manual turn, undo, scramble, or new search discards the plan; undo can reverse a completed solution move, but does not restore the old playback cursor. Scene failure preserves only completed moves. There is no autoplay, dedicated backward-step button, speed control, or persistent progress.
+Click a numbered step to reach the state **after** it: every intermediate turn is animated. Going backward uses inverse moves and removes those solution entries from history, retaining the plan. “Back to solution start” reverses only the completed solution prefix, not the original scramble/input.
+
+Puzzle state, history, and progress update together only after each matching animation completes. Controls stay locked until the selected target is reached. After the final step the app verifies `isSolved` before announcing success. Between operations, a manual turn, ordinary undo, scramble, or new search discards the plan. Scene failure preserves only the committed prefix.
+
+“Show step again N” demonstrates the last completed step from its starting pose, without changing the committed state, history, or progress. **Do not repeat the physical turn if you already performed it.** To review another step, first navigate to it. There is no mid-turn pause/cancel, adjustable speed, or persistent progress.
+
+“Reset cube” restores the default solved position only after confirmation that all history and the current solution will be deleted. Cancelling changes nothing. Reset preserves language and is disabled while another operation runs or the scene is unavailable; it cannot be undone.
 
 See [the solution-playback guide](docs/solution-playback.md) for snapshot binding, exact commits, instructions, and verification.
 
@@ -138,7 +144,7 @@ See [the solution-playback guide](docs/solution-playback.md) for snapshot bindin
 - `src/rendering/pieceTransform.ts` converts a piece's definition and orientation into a Three.js matrix. It rotates the actual solved center around the split intersection, never using slot signs as distances.
 - `src/components/CubeScene.tsx` renders eight boxes and animates the selected layer around the mechanism origin. Three.js handles depth testing and hidden surfaces.
 - `src/components/CubeView.tsx` provides the scene's accessible name/description and a localized fallback if the 3D scene cannot initialize.
-- `src/interaction/turnSession.ts` keeps the committed puzzle and history separate from the pending animation, and guards completion by turn ID. Undo uses the same transaction with an inverse move. Scrambling schedules the next turn atomically after each completion.
+- `src/interaction/turnSession.ts` keeps the committed puzzle and history separate from the pending animation, and guards completion by turn ID. Undo uses the same transaction with an inverse move. Scrambling and solution-target navigation schedule the next turn atomically after each completion. Replay uses a temporary display snapshot without changing committed state.
 - `src/components/MoveControls.tsx` selects direction/angle, requests a face turn, or starts scrambling.
 - `src/components/MoveHistory.tsx` shows recorded moves, newest first, and requests undo.
 - `src/App.tsx` owns the definitions and session, independently of language. Puzzle state is never reconstructed from meshes.
@@ -149,11 +155,11 @@ Box geometry is centered on each mesh's local origin, then positioned and orient
 
 The scene renders on demand, requesting successive frames only while a turn is active. A quarter-turn takes about 0.6 seconds and a half-turn 0.9 seconds, with smooth easing and amber highlighting. The discrete puzzle changes only after completion. New commands are blocked while a turn or scramble is running; repeated clicks are not queued. A scramble's generated sequence advances only on matching animation completions. Reduced-motion preference skips interpolation. Geometry resources are memoized and disposed when replaced or unmounted. There is no drag-to-rotate camera control.
 
-WebGL 2 is required. Initialization failure or context loss shows a localized fallback and disables turns. An unfinished move and any queued scramble remainder are canceled without changing the last committed puzzle or history. Measurements and language controls remain available; reload is required to retry. Reloading resets the puzzle and language.
+WebGL 2 is required. Initialization failure or context loss shows a localized fallback and disables turns. An unfinished move, replay preview, and any queued scramble/navigation remainder are canceled without changing the last committed puzzle or history. Measurements and language controls remain available; reload is required to retry. Reloading resets the puzzle and language.
 
 See [the animated-turn guide](docs/animated-turns.md) for transaction flow, timing, safe framing, and verification. The measurements panel always describes the solved dimensions, not the current outer shape.
 
-Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 321 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
+Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 322 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
 
 ### History and undo
 
@@ -183,7 +189,8 @@ A sequence normally takes about 7–11 seconds. There are no speed, length, paus
 6. Press “Scramble (12)”, switch languages during the sequence, and verify that twelve entries are appended without resetting earlier history. Undo those twelve moves to restore the pre-scramble pose.
 7. Press “Find solution” after the sequence. The move list should appear without changing the cube/history. Start another turn to clear it; try cancellation during a cold search and then retry. Switch languages during search and after completion.
 8. Find a solution again and press “Execute next step” for each move. Verify current-step highlighting, unchanged progress until completion, one new history entry per step, and preserved progress across language changes. The cube should be exactly solved after the final step.
-9. Run `npm run build` followed by `npm run preview` to check the production build locally.
+9. Select a later numbered step, then an earlier one. Verify intermediate turns and history additions/removals. Replay a completed step: the ending pose, progress, and history must remain unchanged. Try cancelling reset, then confirm it and verify the default solved pose, empty history/solution, and preserved language.
+10. Run `npm run build` followed by `npm run preview` to check the production build locally.
 
 `src/rendering/pieceTransform.test.ts` checks actual Three.js box vertices and bounds against the puzzle model, including mixed poses, rotations around the split intersection, absence of scaling/reflection, and a one-millimeter dimension difference. Browser/WebGL checks are currently manual, not a committed end-to-end test suite.
 
@@ -209,7 +216,7 @@ The default is English. Language selection is not persisted or inferred from bro
 3. Inspect the document's language and title, and the scene's accessible name/description, in both languages.
 4. Check both languages at narrow widths; longer Ukrainian text should wrap without horizontal overflow.
 
-`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. `CubeScene` is mocked because jsdom cannot render WebGL, and solve UI tests use a controlled worker stub; these tests do not claim GPU output or native worker scheduling. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes, atomic history updates, and the exactly-once completion contract. Undo tests cover all 18 face/angle combinations, failure during undo, new moves after undo, and exact restoration of every snapshot in a 100-move sequence. Scramble checks cover seeded reproducibility, legal walks, exactly-once sequential commits, replay from recorded history, undo back to the pre-scramble state, and failure with a queued remainder. Dictionary tests check matching keys and nonempty translations. Playback tests additionally check exactly-once step commits, progress/pending-turn preservation across languages, all global frames, history-free solver results, and failure-prefix safety.
+`src/App.test.tsx` uses React Testing Library with jsdom to verify button clicks, localized text and metadata, stable model/state references, and error fallback behavior. `CubeScene` is mocked because jsdom cannot render WebGL, and solve UI tests use a controlled worker stub; these tests do not claim GPU output or native worker scheduling. Geometry tests use real Three.js objects in Node. Session and UI tests also verify pending-turn preservation across language changes, atomic history updates, and the exactly-once completion contract. Undo tests cover all 18 face/angle combinations, failure during undo, new moves after undo, and exact restoration of every snapshot in a 100-move sequence. Scramble checks cover seeded reproducibility, legal walks, exactly-once sequential commits, replay from recorded history, undo back to the pre-scramble state, and failure with a queued remainder. Dictionary tests check matching keys and nonempty translations. Playback tests additionally check exactly-once step commits, progress/pending-turn preservation across languages, all global frames, history-free solver results, forward/backward navigation, non-committing replay, confirmed/cancelled reset, and failure-prefix safety.
 
 ## Documentation
 

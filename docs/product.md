@@ -40,7 +40,8 @@ Repository documentation is maintained in English. Ukrainian user-facing transla
 - Animated scrambling from the current state, which is initially solved. Repeated scrambling preserves existing history rather than resetting the puzzle.
 - Move history and undo for the latest turn.
 - Solution search from a valid state, independent of how it was obtained and without requiring move history.
-- Step-by-step solution playback with highlighted moving pieces.
+- Step-by-step solution playback with highlighted pieces, navigation through intermediate forward/backward moves, and non-committing replay for physical-puzzle review.
+- Reset to the default solved pose after confirming deletion of history and solution.
 - An English/Ukrainian language switcher with localized UI and instructions.
 - Photo-based reconstruction and confirmation of the physical puzzle state, implemented after solution search and playback.
 
@@ -60,7 +61,7 @@ All current model lengths use whole millimeters, with no rounding or approximate
 
 ## First-version boundaries
 
-The application currently works with a known virtual puzzle state and tracks performed turns. History-independent search is connected to a worker and a bilingual solve/result panel, with cancellation and stale-result protection. The returned solution can be executed one animated step at a time, with exact progress/history commits and a verified solved completion. Photo input remains the final planned functional stage, building on this shared solving workflow and its bilingual instructions.
+The application currently works with a known virtual puzzle state and tracks performed turns. History-independent search is connected to a worker and a bilingual solve/result panel, with cancellation and stale-result protection. The returned solution can be executed individually or navigated to a selected step through intermediate forward/inverse moves, with exact progress/history commits and verified solved completion. A completed step can be demonstrated again without changing progress; confirmed reset returns to the default solved position. Photo input remains the final planned functional stage, building on this shared solving workflow and its bilingual instructions.
 
 A single photograph may hide pieces or fail to distinguish their shapes and orientations. Do not promise reconstruction from one arbitrary image. The capture protocol, recognition approach, and any calibration requirements remain to be validated on the owner's physical cube. Start with its confirmed dimensions rather than assuming arbitrary Mirror Cube models are interchangeable.
 

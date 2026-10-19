@@ -167,7 +167,7 @@ Completion criteria:
 
 Limitations of the worker stage: cancelled/failed workers lose their tables; retry rebuilds them. Search budgets are fixed in the UI; no search-progress percentages or automatic retries are added. Browser background throttling can delay the watchdog. Playback was implemented in the following stage; photo input is still deferred.
 
-## Current stage: step-by-step animated solution playback
+## Completed stage: step-by-step animated solution playback
 
 The solution panel now offers one explicitly activated step at a time, with bilingual orientation/direction instructions, current/completed row markers, and progress. A separate snapshot-bound playback record uses the existing renderer and turn-completion contract. See the [playback guide](solution-playback.md).
 
@@ -183,7 +183,23 @@ Completion criteria:
 - all 18 move types and real history-free solutions through all 24 global frames are covered;
 - tests, type checking, production build, and real worker/animation browser checks pass.
 
-Limitations: no autoplay, dedicated backward-step/resume-after-undo behavior, adjustable speed, persistent progress, or mid-turn pause/cancel. Photo capture and reconstruction are not implemented. Manual solve/playback is available locally; deployment remains a separate unapproved stage.
+The initial playback stage provided single-step execution. Target navigation, backward traversal, demonstrations, and confirmed reset were added in the following owner-requested stage. Photo capture and reconstruction remain unimplemented; deployment is deferred.
+
+## Current stage: solution navigation, demonstrations, and reset
+
+Numbered solution rows now navigate to the state after the selected step, animating every intermediate forward or inverse turn. The plan is retained during navigation, history tracks the current solution prefix, and a start button returns to the solution's input state. A separate replay button demonstrates the last completed step without changing the committed state, history, or progress. Reset requires confirmation before restoring the default solved pose and clearing history/solution; it preserves language and monotonic operation IDs.
+
+Completion criteria:
+
+- every intermediate transition commits exactly once, with no unlocked gap or queued user clicks;
+- backward navigation preserves input history and removes only the rewound solution prefix;
+- replay ends at the unchanged committed pose, including after solved completion;
+- language switching and scene failure preserve the appropriate committed state;
+- reset cancellation changes nothing; confirmation clears only the intended session data;
+- obsolete callbacks/results cannot affect post-reset operations;
+- automated tests, type checking, build, and real-browser navigation/replay/native-dialog checks pass.
+
+Limitations: no mid-turn pause/cancel, adjustable speed, persistent progress, or general history redo/jump. Reset is disabled during active work and when the scene is unavailable. Replay demonstrates the last completed step; reviewing another step requires navigating there first. See the [playback guide](solution-playback.md).
 
 ## Agreed rendering direction and deployment order
 

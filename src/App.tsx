@@ -52,6 +52,14 @@ export function App() {
     dispatch({ type: "solution-next" });
     showCanvas();
   }, [showCanvas]);
+  const onGoSolutionStep = useCallback((completed: number) => {
+    dispatch({ type: "solution-go", completed });
+    showCanvas();
+  }, [showCanvas]);
+  const onReplaySolutionStep = useCallback(() => {
+    dispatch({ type: "solution-replay" });
+    showCanvas();
+  }, [showCanvas]);
   const onFind = useCallback(() => dispatch({ type: "find-solution" }), []);
   const onCancelSearch = useCallback(() => dispatch({ type: "cancel-search" }), []);
   const onSearchResult = useCallback((response: SolverResponse) => dispatch({ type: "search-result", response }), []);
@@ -60,6 +68,10 @@ export function App() {
   const move = session.activeTurn?.move;
   const turnLabel = session.scramble
     ? `${text.scrambling} ${session.scramble.completed + 1}/${session.scramble.moves.length}`
+    : session.activeTurn?.kind === "replay" && session.playback
+      ? `${text.replayingStep} ${session.playback.completed}/${session.playback.moves.length}`
+    : session.activeTurn?.kind === "solution-back" && session.playback
+      ? `${text.rewindingStep} ${session.playback.completed}/${session.playback.moves.length}`
     : session.activeTurn?.kind === "solution" && session.playback
       ? `${text.solutionStep} ${session.playback.completed + 1}/${session.playback.moves.length}`
       : session.activeTurn?.kind === "undo" ? text.undoing : text.turning;
@@ -107,7 +119,7 @@ export function App() {
           </div>
           <CubeView
             cube={cube}
-            state={session.puzzle}
+            state={session.activeTurn?.kind === "replay" ? session.activeTurn.previewState : session.puzzle}
             activeTurn={session.activeTurn}
             onTurnComplete={onTurnComplete}
             onReady={onReady}
@@ -127,12 +139,22 @@ export function App() {
             onMove={onMove}
             onScramble={onScramble}
           />
+          <div className="search-actions reset-controls">
+            <button type="button" disabled={controlsDisabled} onClick={() => {
+              if (window.confirm(text.resetWarning)) {
+                dispatch({ type: "reset", state: createSolvedState(cube) });
+                showCanvas();
+              }
+            }}>{text.resetCube}</button>
+          </div>
           <SolutionPanel
             text={text}
             search={session.search}
             playback={session.playback}
-            animating={session.activeTurn?.kind === "solution"}
+            activeTurn={session.activeTurn}
             onNext={onNextSolutionStep}
+            onGo={onGoSolutionStep}
+            onReplay={onReplaySolutionStep}
             disabled={controlsDisabled}
             onFind={onFind}
             onCancel={onCancelSearch}
