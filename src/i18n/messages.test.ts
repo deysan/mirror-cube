@@ -4,6 +4,7 @@ import { LANGUAGES, messages } from "./messages";
 describe("translation dictionaries", () => {
   it("provides the same message and axis keys for both languages", () => {
     expect(Object.keys(messages.uk).sort()).toEqual(Object.keys(messages.en).sort());
+    expect(Object.keys(messages.uk.editor).sort()).toEqual(Object.keys(messages.en.editor).sort());
     expect(Object.keys(messages.uk.axisLayers).sort()).toEqual(["x", "y", "z"]);
     expect(Object.keys(messages.en.axisLayers).sort()).toEqual(["x", "y", "z"]);
     expect(Object.keys(messages.uk.faceNames).sort()).toEqual(["B", "D", "F", "L", "R", "U"]);
@@ -16,11 +17,11 @@ describe("translation dictionaries", () => {
   });
 
   it.each(LANGUAGES)("has no empty translations for $label", ({ code }) => {
-    const { axisLayers, faceNames, turnOptions, stateErrors, searchLimits, ...labels } = messages[code];
+    const { axisLayers, faceNames, turnOptions, stateErrors, searchLimits, editor, ...labels } = messages[code];
     const strings = [
       ...Object.values(labels), ...Object.values(axisLayers),
       ...Object.values(faceNames), ...Object.values(turnOptions),
-      ...Object.values(stateErrors), ...Object.values(searchLimits),
+      ...Object.values(stateErrors), ...Object.values(searchLimits), ...Object.values(editor),
     ];
 
     for (const value of strings) {

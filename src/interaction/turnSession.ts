@@ -1,6 +1,7 @@
 import { applyMove, inverseMove, type Move } from "../puzzle/moves";
 import type { PuzzleState } from "../puzzle/state";
 import { isSolved } from "../puzzle/solved";
+import { draftFromState, editDraft, emptyDraft, validateDraft, type DraftEdit, type PuzzleDraft } from "../puzzle/draft";
 import type { SolverOutcome, SolverRequest, SolverResponse } from "../solver/workerProtocol";
 
 export type SolutionSearch =
@@ -41,9 +42,12 @@ export interface TurnSession {
   readonly search: SolutionSearch;
   readonly nextSearchId: number;
   readonly playback: SolutionPlayback | null;
+  readonly editor: PuzzleDraft | null;
 }
 
 export type TurnAction =
+  | { readonly type: "editor-open" | "editor-cancel" | "editor-copy" | "editor-clear" | "editor-apply" }
+  | { readonly type: "editor-edit"; readonly edit: DraftEdit }
   | { readonly type: "scene-ready" }
   | { readonly type: "scene-failed" }
   | { readonly type: "start"; readonly move: Move }
@@ -61,7 +65,7 @@ export type TurnAction =
 export function createTurnSession(puzzle: PuzzleState): TurnSession {
   return {
     puzzle, history: [], activeTurn: null, scramble: null, sceneStatus: "loading", nextTurnId: 1,
-    search: { status: "idle" }, nextSearchId: 1, playback: null,
+    search: { status: "idle" }, nextSearchId: 1, playback: null, editor: null,
   };
 }
 
@@ -86,7 +90,31 @@ function navigateSolution(session: TurnSession, target: number): TurnSession {
 
 /** UI transaction state, separate from both puzzle rules and animation frames. */
 export function turnSessionReducer(session: TurnSession, action: TurnAction): TurnSession {
+  // Draft previews must never enter moves, playback, search, reset, or late callbacks.
+  if (session.editor && !action.type.startsWith("editor-")
+    && action.type !== "scene-ready" && action.type !== "scene-failed") return session;
   switch (action.type) {
+    case "editor-open":
+      if (session.editor || session.sceneStatus !== "ready" || session.activeTurn || session.search.status === "running") return session;
+      return { ...session, editor: emptyDraft() };
+    case "editor-cancel":
+      return session.editor ? { ...session, editor: null } : session;
+    case "editor-edit":
+    case "editor-copy":
+    case "editor-clear": {
+      if (!session.editor || session.sceneStatus !== "ready") return session;
+      const editor = action.type === "editor-edit" ? editDraft(session.editor, action.edit)
+        : action.type === "editor-copy" ? draftFromState(session.puzzle) : emptyDraft();
+      return editor === session.editor ? session : { ...session, editor };
+    }
+    case "editor-apply": {
+      if (!session.editor || session.sceneStatus !== "ready") return session;
+      const result = validateDraft(session.editor);
+      if (!result.valid) return session;
+      // A new history-free input, not a move. Keep IDs/resources/language independent.
+      return { ...session, puzzle: result.state, history: [], search: { status: "idle" },
+        playback: null, editor: null, scramble: null };
+    }
     case "scene-ready":
       return session.sceneStatus === "loading" ? { ...session, sceneStatus: "ready" } : session;
     case "scene-failed":

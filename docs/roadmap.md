@@ -12,7 +12,7 @@ English documentation and collaboration rules are available in the public reposi
 
 ## Completed stage: solved puzzle model
 
-The TypeScript model and its geometry tests are committed and published. The default parameters use the owner's confirmed Cayro cube dimensions: a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z respectively.
+The TypeScript model and its geometry tests are committed and published. The original factory parameters use a 50 mm edge and splits at 22, 20, and 17 mm along X, Y, and Z. That historical convention remains for offline photo reproducibility. A later owner-requested correction makes the app explicitly use the mirrored split at Z=33, with no geometry selector.
 
 ## Completed stage: initial static view
 
@@ -185,7 +185,7 @@ Completion criteria:
 
 The initial playback stage provided single-step execution. Target navigation, backward traversal, demonstrations, and confirmed reset were added in the following owner-requested stage. Photo capture and reconstruction remain unimplemented; deployment is deferred.
 
-## Current stage: solution navigation, demonstrations, and reset
+## Completed stage: solution navigation, demonstrations, and reset
 
 Numbered solution rows now navigate to the state after the selected step, animating every intermediate forward or inverse turn. The plan is retained during navigation, history tracks the current solution prefix, and a start button returns to the solution's input state. A separate replay button demonstrates the last completed step without changing the committed state, history, or progress. Reset requires confirmation before restoring the default solved pose and clearing history/solution; it preserves language and monotonic operation IDs.
 
@@ -201,17 +201,31 @@ Completion criteria:
 
 Limitations: no mid-turn pause/cancel, adjustable speed, persistent progress, or general history redo/jump. Reset is disabled during active work and when the scene is unavailable. Replay demonstrates the last completed step; reviewing another step requires navigating there first. See the [playback guide](solution-playback.md).
 
+## Implemented: manual physical-state builder; successful owner trial
+
+The owner approved direct piece/position/orientation input as another supported manual input route. The [manual builder](manual-state-builder.md) now provides an isolated empty draft, exact dimensioned piece palette, three proper orientations per slot, eight inspection viewpoints, fixed-world face labels, and validated confirmation into the existing worker/solution playback. It does not need a generating move history or a calibration photograph.
+
+The editor prevents duplicate identities and refuses incomplete or impossible-twist inputs without silently repairing them. Cancel preserves the original cube/history/plan; apply clears old history/solution only after confirmation and validation. Camera and language changes do not change piece poses. Automated and real-browser checks cover the full constructed-input-to-solution path, including scene failure. The initial owner trial exposed difficulty distinguishing pieces and reproducing orientations. After the correction described below, the owner confirmed successfully solving their physical cube. The owner authorized committing the manual workflow without photo functionality; no push or deployment was requested.
+
+## Implemented follow-up: rulers and a single mirrored geometry
+
+The owner first approved selected-edge rulers, an enlarged isolated view, and length-based selection. A subsequent concrete report showed that the smallest piece at UFR needed U=20/R=22/F=17, which the historical geometry could not express. Reflecting the base front/back split permits that pose with proper rotations, without adding arbitrary piece orientations.
+
+The owner then requested **only the mirrored geometry as the application default**, with **length search and the enlarged detail view removed**. The app now explicitly uses X=22/28, Y=20/30, Z=33/17. Main-view dimension rulers, the palette, three proper poses, and eight inspection viewpoints remain. There is no geometry selector or runtime model-switch transaction. The removed controls, lookup module, detail renderer, translations, and dedicated tests are removed rather than hidden.
+
+Model tests preserve the historical no-argument factory convention used by the untouched photo tools, while checking mirrored geometry invariants and the reported UFR pose in a reachable F2 state. Renderer tests cover all 192 poses, and UI/browser checks cover manual construction through worker solving and playback. The owner reports successfully completing the manual-input-to-physical-solution workflow with the mirrored geometry. This verifies the tested physical case, not arbitrary models or recognition accuracy. Photo work stays paused; commits, pushes, and deployment need separate permission.
+
 ## Agreed rendering direction and deployment order
 
 The current renderer uses Three.js with React Three Fiber. Correct depth and occlusion during shape-changing turns justify replacing the solved-only SVG renderer. Animation timing does not need an additional library at this point.
 
 The manual solve/playback workflow is now available locally. Netlify deployment remains deferred and requires separate approval; the complete planned release includes photo input as well. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The next proposed stage is to agree and validate the guided photo-capture, reconstruction, and confirmation protocol on the owner's puzzle before choosing recognition tools or implementing photo input. Stop for owner review before starting it. Each completed stage may be committed under the owner's current authorization; pushing still requires explicit permission.
+The manual state builder has completed a successful owner-reported physical trial. Separately maintained local photo work remains outside this commit. Resume the separate photo path only on the owner's direction. Each commit now requires a separate, direct owner request; plan approval or permission to continue is not commit authorization. Pushing also requires separate explicit permission.
 
 ## Final functional goal: two inputs, one solving workflow
 
-Manual turns/scrambling and photo-based reconstruction are both first-class ways to provide a puzzle state. Complete the manual-input solve/playback workflow first, then add photos as the final functional stage. Photo-based reconstruction remains required, not an optional extension. Both routes use the same independent solver and animated instructions; manual controls are not only development tooling.
+Manual input (turns/scrambling or direct piece placement) and photo-based reconstruction are both first-class ways to provide a puzzle state. Complete the manual-input solve/playback workflow first, then add photos as the final functional stage. Photo-based reconstruction remains required, not an optional extension. Both routes use the same independent solver and animated instructions; manual controls are not only development tooling.
 
 The solver must accept a validated discrete state without move history; recognition should be a separate input boundary, not part of search or rendering. The photo stage must establish the capture protocol on the owner's cube, handle occlusion and ambiguity, show a candidate state for confirmation/correction, and validate it before solving. One arbitrary image is not assumed sufficient. No recognition model or external service is selected yet.
 
@@ -229,8 +243,9 @@ The solver must accept a validated discrete state without move history; recognit
 | 8. Scrambling | An animated legal sequence from the current state, initially solved | Replaying the recorded sequence reproduces the state |
 | 9. Solution search | Goal check, validation/encoding, tables, IDA*, and safe worker/UI integration (implemented) | Applying the returned sequence solves a valid input state without access to its generating moves |
 | 10. Step-by-step solution | Localized instructions and user-paced animated playback (implemented) | Orientation cues, highlights, and state agree at every step in both languages |
-| 11. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
-| 12. Deployment | Publish both input-to-solution workflows on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
+| 11. Direct manual state builder | Place and orient eight pieces, inspect and confirm a validated state (implemented with rulers and mirrored geometry; successful owner-reported physical trial) | The draft is isolated; exact validation precedes history-free solving and playback |
+| 12. Photo input | Guided photographs, candidate state reconstruction, confirmation/correction, and validation | A confirmed physical-puzzle state feeds the existing solver and playback without move history; ambiguous captures are not silently accepted |
+| 13. Deployment | Publish both input-to-solution workflows on Netlify's free plan | Production build succeeds and the complete workflow is accessible over HTTPS |
 
 Once localization is introduced, each subsequent UI stage includes English and Ukrainian text. Playback tests verify that language switching preserves solution progress.
 

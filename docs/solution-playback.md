@@ -18,7 +18,7 @@ Rows are native keyboard-operable buttons, including their visible step numbers.
 
 Clockwise is viewed directly at the named face, including hidden L/D/B faces. Keep U on top, F toward the user, and R on the right. In the fixed isometric view F is the left visible side and R the right. The renderer highlights the four current-layer pieces and preserves their exact dimensions. Existing timing, reduced-motion behavior, camera framing, and interpolation are unchanged. A half-turn counts as one step.
 
-Both input routes share this mechanism: manual input now and future confirmed photo states. Photo reconstruction and physical capture/orientation calibration are **not implemented**.
+Manual turns/scrambling, the [direct state builder](manual-state-builder.md), and future confirmed photo states share this mechanism. Applying a builder draft creates a validated history-free input and discards the old plan; cancelling the builder preserves it. Playback, search, and reset cannot run on an open draft. Photo reconstruction and physical capture/orientation calibration are **not implemented**.
 
 ## Interaction transaction
 

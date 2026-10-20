@@ -4,9 +4,11 @@
 
 MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. The application will provide its interface and solution instructions in English and Ukrainian. The owner is a frontend developer experienced in React and TypeScript who wants to review changes, understand the architecture, and control decisions.
 
-There are two first-class input workflows: manually turn/scramble the virtual cube, or reconstruct and confirm a physical state from photographs. Both feed the same solution search and animated instructions. Complete the manual-input solve workflow first; photo input is required but deliberately deferred until the solver and playback work. Do not assume one photo is sufficient or that move history will be available to the solver.
+There are two first-class input families: manual input (turn/scramble or directly place and orient the eight pieces), and reconstruction/confirmation from photographs. Both feed the same solution search and animated instructions. Complete the manual-input solve workflow first; photo input is required but deliberately deferred until the solver and playback work. Do not assume one photo is sufficient or that move history will be available to the solver.
 
 Before working, read [README.md](README.md), the [product description](docs/product.md), and the [roadmap](docs/roadmap.md). Do not treat planned features as already implemented.
+
+The owner has successfully used the direct manual state builder and authorized committing it without photo functionality. Preserve any separately maintained local photo work; it is not part of this change. The implemented builder is described in `docs/manual-state-builder.md`; do not confuse a mechanically valid draft with a verified match to a physical cube. The initial trial exposed difficulty matching pieces and orientations; main-view dimension rulers remain, but the owner requested removing length search and the enlarged detail view. The app now uses only `MIRRORED_CUBE_PARAMETERS` (X=22/28, Y=20/30, Z=33/17); no geometry selector is wanted. This supports the reported smallest-piece UFR pose R=22/U=20/F=17. The owner subsequently confirmed successfully solving their physical cube through the manual workflow; do not generalize that successful trial to arbitrary puzzles or photo recognition. Preserve the factory's historical no-argument Z=17 convention for unchanged offline photo probes; it is not the app's configuration. If none of the three proper poses matches a physical piece, investigate dimensions, reference directions, identity, and model handedness rather than assuming user error or adding arbitrary rotations.
 
 ## Collaboration
 
@@ -17,7 +19,7 @@ Before working, read [README.md](README.md), the [product description](docs/prod
 - Before each stage, briefly explain what will be implemented, which parts will change, and why this approach was chosen.
 - Do not start an unapproved stage. The roadmap is not permission to implement every item.
 - After each stage, summarize the changes, key files, verification steps, and known limitations. Stop until the owner asks to continue.
-- Do not commit or push without the owner's explicit permission. Approval to edit files is not approval to publish them.
+- Each commit requires a separate, direct request from the owner. Plan approval, permission to edit, or a request to continue is not commit permission; do not rely on earlier standing authorization. Push also requires separate explicit permission.
 - Do not add out-of-scope features or empty modules for future stages.
 - Update documentation when implementation changes documented assumptions or commands.
 

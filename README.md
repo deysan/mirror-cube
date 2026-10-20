@@ -1,14 +1,16 @@
 # MirrorCube
 
-MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. There are two target input workflows: **manually turn/scramble the virtual cube**, or **reconstruct and confirm a physical state from photographs**. Both lead to the same solution search and animated instructions showing how to hold and turn the puzzle.
+MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. There are two target input workflows: **manually turn/scramble the virtual cube or directly place and orient its pieces**, or **reconstruct and confirm a physical state from photographs**. Both lead to the same solution search and animated instructions showing how to hold and turn the puzzle.
 
-Manual input is a full product workflow, not only a development tool. Its solve/playback path is implemented locally; photo input remains the required final functional stage. The solver must accept a validated state without requiring move history. A single photo may be insufficient; guided views and confirmation will be designed and verified during the photo-input stage.
+Manual input is a full product workflow, not only a development tool. Its solve/playback path and [direct physical-state builder](docs/manual-state-builder.md) are implemented, and the owner reports successfully solving their physical cube. Photo input remains a separate planned workflow and is not included in this change. The solver accepts a validated state without requiring move history; one arbitrary photo is not assumed sufficient.
 
 The interface and step-by-step solution instructions support **English and Ukrainian**. Repository documentation is written in English.
 
 ## Current status
 
-The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. Choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
+The exact puzzle model, a Three.js/React Three Fiber scene, animated manual turns and scrambling, move history, animated undo, and an English/Ukrainian interface are implemented. The direct state builder also lets users place the eight distinct pieces, select one of three orientations per position, inspect eight viewpoints, and confirm a validated history-free state. Selected-edge rulers help compare lengths in the fixed reference frame. The application uses only the mirrored geometry requested by the owner; the former length-search form and enlarged isolated-piece view have been removed. This route does not require photographs or a generating move sequence; the owner reports successfully solving their physical cube through this manual workflow.
+
+For manual turns, choose a direction/angle, then a face: four highlighted pieces rotate together and the exact state and history are committed after the movement. Undo animates the inverse of the last recorded move.
 
 Exact solved-state detection is available in the domain layer, allowing all 24 whole-cube orientations without using move history. Plain-data validation, compact coordinates, transition/distance tables, and IDA* search now power a worker-backed “Find solution” button. Search verifies each result with exact domain moves, supports cancellation and budgets, and displays bilingual results without changing the cube or history. An already-solved state is reported after search; there is no continuously updated solved badge. Verified solutions support individual steps, animated forward/backward navigation to a selected step, and non-committing step demonstrations, with exact progress and final solvedness checks. A confirmed reset restores the default solved position and clears history/solution. There is no general history redo, photo recognition, or public deployment yet. The original SVG renderer has been removed. Deployment remains deferred and requires separate approval; the complete planned release includes both input routes.
 
@@ -34,20 +36,22 @@ npm run preview
 
 ## Solved puzzle model
 
-`src/puzzle/model.ts` exports `createSolvedCube(parameters?)`, which constructs eight pieces without React or rendering dependencies. Calling it without arguments uses the owner's confirmed dimensions for their [Cayro 2×2 Mirror Cube](https://bi.ua/ukr/product/zerkalnyy-kubik-rubika-cayro-2h2-8380.html):
+`src/puzzle/model.ts` exports `createSolvedCube(parameters?)`, which constructs eight pieces without React or rendering dependencies. The application calls it with `MIRRORED_CUBE_PARAMETERS`, using a single mirrored configuration of the owner's [Cayro 2×2 Mirror Cube](https://bi.ua/ukr/product/zerkalnyy-kubik-rubika-cayro-2h2-8380.html):
 
 | Parameter | Value |
 | --- | --- |
 | Cube edge length | 50 mm |
 | X layers | 22 / 28 mm |
 | Y layers | 20 / 30 mm |
-| Z layers | 17 / 33 mm |
+| Z layers (B / F) | 33 / 17 mm |
 
-The owner confirmed these dimensions; the product link identifies the puzzle and is not cited as a manufacturer specification for the layer sizes.
+The owner confirmed the size pairs; the product link identifies the puzzle and is not a manufacturer specification for the layer sizes. After reporting that the smallest piece needs U=20, R=22, F=17 at UFR, the owner requested reflecting the original front/back geometry and making that the application's only configuration. This reported pose is now supported without improper rotations. The owner subsequently confirmed successfully solving their physical cube with the mirrored configuration. That is evidence for the tested physical state, not a guarantee for other puzzle models.
+
+For offline photo reproducibility, the generic factory's **no-argument** `DEFAULT_CUBE_PARAMETERS` retains the historical Z=17 split. The app explicitly uses the mirrored parameters and offers no geometry selector. Historical photo IDs are not automatically interchangeable with current application piece IDs.
 
 ### Coordinates and pieces
 
-All lengths and coordinates use millimeters. The three split planes intersect at `(0, 0, 0)`, so the solved cube occupies `[-22, 28] × [-20, 30] × [-17, 33]`. Its outer geometric center is not the coordinate origin.
+All lengths and coordinates use millimeters. The three split planes intersect at `(0, 0, 0)`, so the solved cube occupies `[-22, 28] × [-20, 30] × [-33, 17]`. Its outer geometric center is not the coordinate origin.
 
 Each piece has:
 
@@ -55,18 +59,18 @@ Each piece has:
 - `dimensions`: separate local X, Y, Z lengths, aligned with world axes in the solved state.
 - `solvedMin`: the minimum corner of its solved-state box, not its center or a mutable current position.
 
-The maximum corner is `solvedMin + dimensions`, component by component. The resulting dimensions are:
+The maximum corner is `solvedMin + dimensions`, component by component. The application's mirrored piece dimensions are:
 
 | Piece ID | X (mm) | Y (mm) | Z (mm) |
 | --- | --- | --- | --- |
-| `---` | 22 | 20 | 17 |
-| `--+` | 22 | 20 | 33 |
-| `-+-` | 22 | 30 | 17 |
-| `-++` | 22 | 30 | 33 |
-| `+--` | 28 | 20 | 17 |
-| `+-+` | 28 | 20 | 33 |
-| `++-` | 28 | 30 | 17 |
-| `+++` | 28 | 30 | 33 |
+| `---` | 22 | 20 | 33 |
+| `--+` | 22 | 20 | 17 |
+| `-+-` | 22 | 30 | 33 |
+| `-++` | 22 | 30 | 17 |
+| `+--` | 28 | 20 | 33 |
+| `+-+` | 28 | 20 | 17 |
+| `++-` | 28 | 30 | 33 |
+| `+++` | 28 | 30 | 17 |
 
 ### Validation and current limitations
 
@@ -86,6 +90,14 @@ The model uses ideal rectangular pieces without bevels, gaps, or an internal mec
 - `src/puzzle/scramble.ts` generates a 12-move random walk with different axes on adjacent moves, without UI or renderer dependencies.
 
 Completed turns use only coordinate swaps and sign changes, not floating-point angles. The logical octant is not the piece's geometric center. See [the move-model guide](docs/moves.md) for conventions, examples, and the geometry used by animation.
+
+## Direct manual reconstruction
+
+Choose **Build a physical cube state** to enter an isolated, initially empty draft. Select a corner position, choose from the dimensioned palette, and cycle its three proper orientations. Colored edge rulers and face-labeled text show the selected pose's exact lengths. In the mirrored geometry, Piece 2 (`--+`, 22×20×17 mm) initially placed at UFR has R=22, U=20, F=17. There is no length-search form or separate enlarged view. Reused identities are blocked; empty and invalid-twist drafts remain editable but cannot be applied. Position and viewpoint buttons are keyboard-accessible, and visible pieces/empty markers can also be selected in 3D.
+
+Confirming a valid draft creates a new committed input with empty history and no old solution. Cancelling leaves the previous cube/history/plan intact. A draft never goes to the worker; after applying, use the existing **Find solution** and playback. English/Ukrainian switching preserves all input. Inspection changes only the camera, not puzzle poses. Verification checks reachability, not whether the user accurately matched the physical cube.
+
+See [the manual builder guide](docs/manual-state-builder.md) for reference-face conventions, confirmations, transaction rules, tests, and limitations. No photographs are needed to use this route.
 
 ## Exact solvedness and solution search
 
@@ -149,17 +161,17 @@ See [the solution-playback guide](docs/solution-playback.md) for snapshot bindin
 - `src/components/MoveHistory.tsx` shows recorded moves, newest first, and requests undo.
 - `src/App.tsx` owns the definitions and session, independently of language. Puzzle state is never reconstructed from meshes.
 
-The fixed orthographic camera looks from positive X, Y, and Z toward the mechanism origin. Positive Y projects upward, positive X down-right, and positive Z down-left. Its zoom fits a pivot-centered sphere that contains all pieces even during turns, avoiding clipping or camera jumps. Zoom adjusts when the viewport changes. The controls explain the fixed face directions and the outside-looking-in meaning of clockwise.
+During normal turns and playback, the fixed orthographic camera looks from positive X, Y, and Z toward the mechanism origin. Positive Y projects upward, positive X down-right, and positive Z down-left. Its zoom fits a pivot-centered sphere that contains all pieces even during turns, avoiding clipping or camera jumps. Zoom adjusts when the viewport changes. The controls explain the fixed face directions and the outside-looking-in meaning of clockwise.
 
 Box geometry is centered on each mesh's local origin, then positioned and oriented using its pose matrix. All faces are present; a depth buffer hides the surfaces behind other pieces. Edge outlines visualize divisions without shrinking the pieces or introducing artificial gaps. Ambient and directional lighting provide neutral shading, not photorealistic mirror reflections.
 
-The scene renders on demand, requesting successive frames only while a turn is active. A quarter-turn takes about 0.6 seconds and a half-turn 0.9 seconds, with smooth easing and amber highlighting. The discrete puzzle changes only after completion. New commands are blocked while a turn or scramble is running; repeated clicks are not queued. A scramble's generated sequence advances only on matching animation completions. Reduced-motion preference skips interpolation. Geometry resources are memoized and disposed when replaced or unmounted. There is no drag-to-rotate camera control.
+The scene renders on demand, requesting successive frames only while a turn is active. A quarter-turn takes about 0.6 seconds and a half-turn 0.9 seconds, with smooth easing and amber highlighting. The discrete puzzle changes only after completion. New commands are blocked while a turn or scramble is running; repeated clicks are not queued. A scramble's generated sequence advances only on matching animation completions. Reduced-motion preference skips interpolation. Geometry resources are memoized and disposed when replaced or unmounted. There is no drag-to-rotate camera control. The state builder separately provides eight preset inspection viewpoints and fixed-world face labels; returning to normal interaction restores the solution camera without changing the chosen puzzle state.
 
 WebGL 2 is required. Initialization failure or context loss shows a localized fallback and disables turns. An unfinished move, replay preview, and any queued scramble/navigation remainder are canceled without changing the last committed puzzle or history. Measurements and language controls remain available; reload is required to retry. Reloading resets the puzzle and language.
 
-See [the animated-turn guide](docs/animated-turns.md) for transaction flow, timing, safe framing, and verification. The measurements panel always describes the solved dimensions, not the current outer shape.
+See [the animated-turn guide](docs/animated-turns.md) for transaction flow, timing, safe framing, and verification. The general measurements panel describes solved dimensions, not the current outer shape. Builder-specific rulers and length labels instead describe the selected piece in its current draft pose.
 
-Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 322 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
+Three.js and React Three Fiber increase the production JavaScript bundle size. Vite currently warns about a chunk over 500 kB before compression (approximately 331 kB gzip). The warning is not suppressed; code splitting or lazy loading can be considered when needed.
 
 ### History and undo
 
@@ -167,7 +179,7 @@ Completed manual, scramble, and solution turns enter history. Entries are not co
 
 “Undo last move” animates the inverse of the most recent entry, independently of the angle selected for manual turns. History and puzzle state remain unchanged during that animation; completion updates both atomically. Undo is disabled for empty history, an unavailable scene, or any active turn. Failure during undo preserves the committed state and history.
 
-Repeated undo restores each previous state back to the session's initial state. A new manual turn after undo extends the remaining history; there is no redo stack, history-jump control, or persistence. Reload clears the history. Undo is not presented as solution search or proof of solvedness.
+Repeated undo restores each previous state back to the latest confirmed input state (or the initial solved state if no builder input was applied). A new manual turn after undo extends the remaining history; there is no redo stack, history-jump control, or persistence. Reload clears the history. Undo is not presented as solution search or proof of solvedness.
 
 ### Animated scrambling
 
@@ -182,7 +194,7 @@ A sequence normally takes about 7–11 seconds. There are no speed, length, paus
 ### Visual verification
 
 1. Run `npm run dev` and open the page.
-2. Confirm the initial solved cube and the 50 mm, 22/28, 20/30, and 17/33 mm reference measurements.
+2. Confirm the initial solved cube and the 50 mm, 22/28, 20/30, and 33/17 mm reference measurements.
 3. Select a direction/angle and press a face button. Four amber pieces should move; further turns are disabled until completion.
 4. Perform R, U′, and F2, then undo three times. Each animation should remove only the latest entry after completion and restore the previous pose. Switch languages during undo: it must not restart or accept another command.
 5. Resize to desktop and mobile widths; the puzzle should stay in frame, including its protruding pieces. On small screens an offscreen canvas is brought into view when requesting a turn.
@@ -190,7 +202,8 @@ A sequence normally takes about 7–11 seconds. There are no speed, length, paus
 7. Press “Find solution” after the sequence. The move list should appear without changing the cube/history. Start another turn to clear it; try cancellation during a cold search and then retry. Switch languages during search and after completion.
 8. Find a solution again and press “Execute next step” for each move. Verify current-step highlighting, unchanged progress until completion, one new history entry per step, and preserved progress across language changes. The cube should be exactly solved after the final step.
 9. Select a later numbered step, then an earlier one. Verify intermediate turns and history additions/removals. Replay a completed step: the ending pose, progress, and history must remain unchanged. Try cancelling reset, then confirm it and verify the default solved pose, empty history/solution, and preserved language.
-10. Run `npm run build` followed by `npm run preview` to check the production build locally.
+10. Open the state builder. Place all eight pieces and compare their three orientations, inspect other viewpoints, and switch languages. An incomplete draft or a single unbalanced twist must block apply. Test cancel and apply confirmations; a confirmed input must have empty history and use the existing solver/playback.
+11. Run `npm run build` followed by `npm run preview` to check the production build locally.
 
 `src/rendering/pieceTransform.test.ts` checks actual Three.js box vertices and bounds against the puzzle model, including mixed poses, rotations around the split intersection, absence of scaling/reflection, and a one-millimeter dimension difference. Browser/WebGL checks are currently manual, not a committed end-to-end test suite.
 
@@ -221,6 +234,7 @@ The default is English. Language selection is not persisted or inferred from bro
 ## Documentation
 
 - [Product and MVP scope](docs/product.md)
+- [Manual physical-state builder](docs/manual-state-builder.md)
 - [Incremental development roadmap](docs/roadmap.md)
 - [Discrete state and move rules](docs/moves.md)
 - [Exact solvedness and solver design](docs/solver.md)

@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   createSolvedCube,
   DEFAULT_CUBE_PARAMETERS,
+  MIRRORED_CUBE_PARAMETERS,
   type CubeParameters,
 } from "./model";
 
 const AXES = ["x", "y", "z"] as const;
 
 const fixtures = [
-  { name: "default dimensions", parameters: DEFAULT_CUBE_PARAMETERS },
+  { name: "historical reference dimensions", parameters: DEFAULT_CUBE_PARAMETERS },
+  { name: "mirrored application dimensions", parameters: MIRRORED_CUBE_PARAMETERS },
   {
     name: "split planes past the midpoint",
     parameters: { edgeLength: 50, splits: { x: 28, y: 30, z: 33 } },
@@ -102,7 +104,19 @@ describe.each(fixtures)("solved geometry: $name", ({ parameters }) => {
 });
 
 describe("piece dimensions and identity", () => {
-  it("builds the documented default geometry around the split intersection", () => {
+  it("reflects the application's front/back geometry without changing sizes or the historical photo convention", () => {
+    const reference = createSolvedCube(), mirrored = createSolvedCube(MIRRORED_CUBE_PARAMETERS);
+    expect(reference.splits).toEqual({ x: 22, y: 20, z: 17 });
+    expect(mirrored.splits).toEqual({ x: 22, y: 20, z: 33 });
+    for (const piece of reference.pieces) {
+      const reflectedId = piece.id.slice(0, 2) + (piece.id[2] === "+" ? "-" : "+");
+      const reflected = mirrored.pieces.find(p => p.id === reflectedId)!;
+      expect(reflected.dimensions).toEqual(piece.dimensions);
+      expect(reflected.solvedMin).toEqual({ ...piece.solvedMin, z: -piece.solvedMin.z - piece.dimensions.z });
+    }
+  });
+
+  it("retains the historical factory default around the split intersection", () => {
     const cube = createSolvedCube();
 
     expect(cube.edgeLength).toBe(50);

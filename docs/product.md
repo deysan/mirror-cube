@@ -2,16 +2,17 @@
 
 ## Purpose
 
-MirrorCube will let users prepare a 2×2 Mirror Cube state by manually turning/scrambling the virtual cube or by reconstructing a physical state from photographs, then find a solution and follow animated instructions. Both input methods are full product workflows sharing one solver and playback system. Users should understand each movement rather than rely only on move notation. Photo input is a required final functional stage, not an optional extension; it is not implemented yet.
+MirrorCube will let users prepare a 2×2 Mirror Cube state by manually turning/scrambling the virtual cube, directly placing/orienting its eight pieces, or reconstructing a physical state from photographs, then find a solution and follow animated instructions. Manual and photo input are full product workflows sharing one solver and playback system. Users should understand each movement rather than rely only on move notation. Photo input is a required final functional stage, not an optional extension; it is not implemented yet.
 
 The puzzle consists of eight differently sized pieces. Turns change its outer shape; in the solved state, the pieces form a cube with flush outer surfaces.
 
 ## Core user journey
 
 1. Choose an input method:
-   - manually turn or scramble the virtual cube; or
+   - manually turn or scramble the virtual cube;
+   - reconstruct the physical state by choosing each corner's piece and orientation; or
    - photograph the physical puzzle using guided views, whose number and angles will be established during the photo-input stage.
-2. Review the 3D state. For photo input, resolve ambiguities with additional views or corrections and confirm the reconstructed state.
+2. Review the 3D state. The manual builder keeps an isolated draft, prevents duplicate identities, and requires exact validation and explicit confirmation before replacing the current state. For photo input, resolve ambiguities with additional views or corrections and confirm the reconstructed state.
 3. Request a solution from that validated state, without needing its move history.
 4. Follow the solution step by step in the virtual view or on the physical puzzle, using orientation guidance, animations, and highlighted moving pieces.
 
@@ -39,6 +40,7 @@ Repository documentation is maintained in English. Ukrainian user-facing transla
 - Face-turn controls.
 - Animated scrambling from the current state, which is initially solved. Repeated scrambling preserves existing history rather than resetting the puzzle.
 - Move history and undo for the latest turn.
+- A direct physical-state builder with exact piece choices, three orientations per position, selected-edge dimensions, eight inspection viewpoints, validation, and confirmation without requiring generating moves.
 - Solution search from a valid state, independent of how it was obtained and without requiring move history.
 - Step-by-step solution playback with highlighted pieces, navigation through intermediate forward/backward moves, and non-committing replay for physical-puzzle review.
 - Reset to the default solved pose after confirming deletion of history and solution.
@@ -55,13 +57,13 @@ Similar dimensions must not be treated as equal: differences of a few millimeter
 
 Puzzle state is the source of truth. Projection and intermediate animation frames do not determine move legality or solved status.
 
-The implemented solved-state geometry uses rectangular pieces without bevels, gaps, or an internal mechanism. Its default parameters match the owner's confirmed dimensions for their [Cayro 2×2 Mirror Cube](https://bi.ua/ukr/product/zerkalnyy-kubik-rubika-cayro-2h2-8380.html): a 50 mm edge, with X layers of 22/28 mm, Y layers of 20/30 mm, and Z layers of 17/33 mm. These dimensions were confirmed by the owner, not independently verified against a manufacturer specification.
+The implemented solved-state geometry uses rectangular pieces without bevels, gaps, or an internal mechanism. The application's single mirrored configuration uses the owner's size pairs for their [Cayro 2×2 Mirror Cube](https://bi.ua/ukr/product/zerkalnyy-kubik-rubika-cayro-2h2-8380.html): a 50 mm edge, with X layers of 22/28 mm, Y layers of 20/30 mm, and Z layers of 33/17 mm (B/F). The size pairs were confirmed by the owner, not independently verified against a manufacturer specification. The owner requested the mirrored convention after reporting the smallest piece at UFR with R=22/U=20/F=17; this pose is now supported. The general factory's historical no-argument parameters remain unchanged for offline photo reproducibility and are not an application option.
 
-All current model lengths use whole millimeters, with no rounding or approximate equality. Fractional inputs are rejected; support for finer measurements will require an explicitly finer unit. See the [model documentation](../README.md#solved-puzzle-model) for coordinates, piece dimensions, and validation rules.
+All current model lengths use whole millimeters, with no rounding or approximate equality. Fractional model parameters are rejected; support for finer geometry will require an explicitly finer unit. See the [model documentation](../README.md#solved-puzzle-model) for coordinates, piece dimensions, and validation rules.
 
 ## First-version boundaries
 
-The application currently works with a known virtual puzzle state and tracks performed turns. History-independent search is connected to a worker and a bilingual solve/result panel, with cancellation and stale-result protection. The returned solution can be executed individually or navigated to a selected step through intermediate forward/inverse moves, with exact progress/history commits and verified solved completion. A completed step can be demonstrated again without changing progress; confirmed reset returns to the default solved position. Photo input remains the final planned functional stage, building on this shared solving workflow and its bilingual instructions.
+The application currently works with a known virtual puzzle state and tracks performed turns. History-independent search is connected to a worker and a bilingual solve/result panel, with cancellation and stale-result protection. The returned solution can be executed individually or navigated to a selected step through intermediate forward/inverse moves, with exact progress/history commits and verified solved completion. A completed step can be demonstrated again without changing progress; confirmed reset returns to the default solved position. The [manual state builder](manual-state-builder.md) is now implemented for owner testing: it creates a validated history-free input and uses that same solving workflow. The initial owner trial could not reliably match similar pieces and orientations. Main-view dimension rulers remain. At the owner's request, the subsequent enlarged detail view and length search have been removed, and only the mirrored geometry is used by default. The owner subsequently reported successfully solving their physical cube through the manual workflow. This confirms the tested case, not arbitrary puzzle compatibility. A mismatch may concern the reference frame or model, not just user entry. Photo functionality is not included in this change. Photo input remains part of the planned complete product.
 
 A single photograph may hide pieces or fail to distinguish their shapes and orientations. Do not promise reconstruction from one arbitrary image. The capture protocol, recognition approach, and any calibration requirements remain to be validated on the owner's physical cube. Start with its confirmed dimensions rather than assuming arbitrary Mirror Cube models are interchangeable.
 

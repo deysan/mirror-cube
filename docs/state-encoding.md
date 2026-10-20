@@ -9,7 +9,7 @@ These modules implement the history-independent input boundary for the solver:
 - `src/puzzle/corners.ts`: canonical piece/slot order and the corner-twist convention;
 - `src/solver/coordinates.ts`: encode/decode normalized states and map moves back to the input frame.
 
-Transition/distance tables and pure search are implemented separately (see [solver tables](solver-tables.md) and [IDA* search](solver-search.md)). [Worker integration](solver-worker.md) now consumes committed snapshots; imported-state UI and photo recognition are not implemented yet. These functions do not import React or Three.js, consult history, or modify piece definitions.
+Transition/distance tables and pure search are implemented separately (see [solver tables](solver-tables.md) and [IDA* search](solver-search.md)). [Worker integration](solver-worker.md) consumes committed snapshots. The [manual state builder](manual-state-builder.md) now validates and confirms a directly constructed input without history; file import and photo recognition remain unimplemented. These functions do not import React or Three.js, consult history, or modify piece definitions.
 
 ## Validation API
 
@@ -57,7 +57,7 @@ On failure, no partial state is returned. The first error has a stable, language
 | `pose` | Slot and orientation disagree for that piece |
 | `twist-sum` | The corner twists cannot be obtained by legal turns |
 
-`cornerIndex`, when present, refers to the original supplied array, not the canonical order. User-facing translations of these diagnostics will be added with solver input/result UI; these are not UI messages yet. `isSolved` remains a separate goal predicate, not an unknown-input validator.
+`cornerIndex`, when present, refers to the original supplied array, not the canonical order. User-facing translations are provided by the solver UI dictionaries. The manual builder adds focused guidance for incomplete drafts and invalid twist sums without automatically repairing either. `isSolved` remains a separate goal predicate, not an unknown-input validator.
 
 ## Corner-twist convention
 

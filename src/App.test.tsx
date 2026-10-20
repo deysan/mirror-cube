@@ -58,7 +58,7 @@ function expectLanguage(language: Language) {
     expect(screen.getByText(value)).toBeDefined();
   }
   expect(screen.getByRole("button", { name: `${text.scramble} (${SCRAMBLE_LENGTH})` })).toBeDefined();
-  for (const dimensions of ["50", "22 / 28", "20 / 30", "17 / 33"]) {
+  for (const dimensions of ["50", "22 / 28", "20 / 30", "33 / 17"]) {
     expect(screen.getByText(`${dimensions} ${text.millimeters}`)).toBeDefined();
   }
 

@@ -1,5 +1,6 @@
 import type { Face, Move } from "../puzzle/moves";
 import type { StateErrorCode } from "../puzzle/validation";
+import { editorMessages, type EditorMessages } from "./editor";
 
 export const LANGUAGES = [
   { code: "en", label: "English" },
@@ -9,6 +10,7 @@ export const LANGUAGES = [
 export type Language = (typeof LANGUAGES)[number]["code"];
 
 export interface Messages {
+  readonly editor: EditorMessages;
   readonly documentTitle: string;
   readonly documentDescription: string;
   readonly languageLabel: string;
@@ -89,6 +91,7 @@ export interface Messages {
 
 export const messages = {
   en: {
+    editor: editorMessages.en,
     documentTitle: "MirrorCube — 2×2 Mirror Cube",
     documentDescription: "A step-by-step guide to solving the 2×2 Mirror Cube. Start by exploring its geometry.",
     languageLabel: "Interface language",
@@ -171,12 +174,13 @@ export const messages = {
     cubeEdge: "Cube edge",
     axisLayers: { x: "X layers", y: "Y layers", z: "Z layers" },
     millimeters: "mm",
-    stageNote: "Manual turns, scrambling, history, animated undo, solution search, and step-by-step playback are available. Photo input is not available yet. Reloading resets the puzzle, history, and solution progress.",
+    stageNote: "Manual turns, a physical-state builder, scrambling, history, animated undo, solution search, and step-by-step playback are available. Photo input is not available yet. Reloading resets the puzzle, history, and solution progress.",
     cubeTitle: "2×2 Mirror Cube",
     cubeDescription: "A fixed 3D isometric view of the puzzle. During a turn, four highlighted pieces rotate together; the other four remain still.",
     sceneUnavailable: "The 3D view is unavailable. Check WebGL 2 support and reload the page. Turn controls are disabled; completed turns are kept, and unfinished or queued turns are not applied.",
   },
   uk: {
+    editor: editorMessages.uk,
     documentTitle: "MirrorCube — дзеркальний кубик 2×2",
     documentDescription: "Покрокова інструкція зі складання дзеркального кубика 2×2. Почніть зі знайомства з його геометрією.",
     languageLabel: "Мова інтерфейсу",
@@ -259,7 +263,7 @@ export const messages = {
     cubeEdge: "Ребро кубика",
     axisLayers: { x: "Шари по X", y: "Шари по Y", z: "Шари по Z" },
     millimeters: "мм",
-    stageNote: "Доступні ручні повороти, перемішування, історія, анімоване скасування, пошук розв’язку та покрокове відтворення. Введення з фото ще недоступне. Перезавантаження скидає кубик, історію та прогрес розв’язку.",
+    stageNote: "Доступні ручні повороти, конструктор фізичного стану, перемішування, історія, анімоване скасування, пошук розв’язку та покрокове відтворення. Введення з фото ще недоступне. Перезавантаження скидає кубик, історію та прогрес розв’язку.",
     cubeTitle: "Дзеркальний кубик 2×2",
     cubeDescription: "Фіксований об’ємний ізометричний вигляд кубика. Під час повороту чотири підсвічені деталі обертаються разом, а решта чотири залишаються нерухомими.",
     sceneUnavailable: "Об’ємне відображення недоступне. Перевірте підтримку WebGL 2 та перезавантажте сторінку. Кнопки поворотів заблоковані; завершені ходи збережено, а незавершені й заплановані — не застосовано.",

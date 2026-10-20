@@ -28,10 +28,16 @@ export interface SolvedCube extends CubeParameters {
   readonly pieces: readonly Piece[];
 }
 
-/** Owner-confirmed dimensions of their Cayro 2×2 Mirror Cube, in mm. */
+/** Historical reference convention, retained for reproducible offline photo probes. */
 export const DEFAULT_CUBE_PARAMETERS = {
   edgeLength: 50,
   splits: { x: 22, y: 20, z: 17 },
+} as const satisfies CubeParameters;
+
+/** The application's only geometry: reflected front/back split, with unchanged size pairs. */
+export const MIRRORED_CUBE_PARAMETERS = {
+  edgeLength: 50,
+  splits: { x: 22, y: 20, z: 33 },
 } as const satisfies CubeParameters;
 
 const AXES = ["x", "y", "z"] as const;
