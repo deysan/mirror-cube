@@ -2,9 +2,13 @@
 
 MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. There are two target input workflows: **manually turn/scramble the virtual cube or directly place and orient its pieces**, or **reconstruct and confirm a physical state from photographs**. Both lead to the same solution search and animated instructions showing how to hold and turn the puzzle.
 
-Manual input is a full product workflow, not only a development tool. Its solve/playback path and [direct physical-state builder](docs/manual-state-builder.md) are implemented, and the owner reports successfully solving their physical cube. Photo input remains a separate planned workflow and is not included in this change. The solver accepts a validated state without requiring move history; one arbitrary photo is not assumed sufficient.
+Manual input is a full product workflow, not only a development tool. Its solve/playback path and [direct physical-state builder](docs/manual-state-builder.md) are implemented locally. The owner has successfully solved their physical cube through manual reconstruction. Photo work is preserved on the separate `feat/offline-photo-tools` branch and remains paused; photo input is still part of the planned complete product. The solver must accept a validated state without requiring move history. A single photo may be insufficient. The approved photo-input direction is semi-automatic, non-AI reconstruction using classical computer vision and known geometry, targeting local browser processing. Its [first stage](docs/photo-input.md) checks real photographs and capture requirements. An [offline geometric probe](docs/photo-geometry-check.md) tests single-box reconstruction and shared per-image cameras from manually marked edges, including held-out checks and sensitivity. A subsequent [pixel-based check](docs/photo-edge-refinement.md) refines local contrast boundaries, but repeatable candidates are not automatically accepted as body edges. The [boundary-analysis module](docs/photo-boundary-review.md) now provides an offline bilingual review page and validated observation export, preserving alternatives and restricting inset borders to explicitly declared direction use. Physical calibration and state reconstruction remain unverified. No in-app photo capture/reconstruction/import workflow is implemented yet.
 
 The interface and step-by-step solution instructions support **English and Ukrainian**. Repository documentation is written in English.
+
+## Photo-tools branch
+
+This branch preserves the offline photo-analysis implementation, tests, and documentation separately from `main`. It does not include the in-progress free-orbit camera changes. No private photographs, image-containing reports, or local annotations are included. These tools export reviewed observations, not an accepted puzzle state; physical calibration and photo reconstruction remain unverified.
 
 ## Current status
 
@@ -97,7 +101,7 @@ Choose **Build a physical cube state** to enter an isolated, initially empty dra
 
 Confirming a valid draft creates a new committed input with empty history and no old solution. Cancelling leaves the previous cube/history/plan intact. A draft never goes to the worker; after applying, use the existing **Find solution** and playback. English/Ukrainian switching preserves all input. Inspection changes only the camera, not puzzle poses. Verification checks reachability, not whether the user accurately matched the physical cube.
 
-See [the manual builder guide](docs/manual-state-builder.md) for reference-face conventions, confirmations, transaction rules, tests, and limitations. No photographs are needed to use this route.
+See [the manual builder guide](docs/manual-state-builder.md) for reference-face conventions, confirmations, transaction rules, tests, and limitations. No new photos are needed to try this route; all photo analysis tools are retained.
 
 ## Exact solvedness and solution search
 
@@ -235,6 +239,10 @@ The default is English. Language selection is not persisted or inferred from bro
 
 - [Product and MVP scope](docs/product.md)
 - [Manual physical-state builder](docs/manual-state-builder.md)
+- [Non-AI photo-input feasibility plan](docs/photo-input.md)
+- [Offline geometric check and initial results](docs/photo-geometry-check.md)
+- [Local pixel-based edge refinement](docs/photo-edge-refinement.md)
+- [Boundary alternatives, review, and observation export](docs/photo-boundary-review.md)
 - [Incremental development roadmap](docs/roadmap.md)
 - [Discrete state and move rules](docs/moves.md)
 - [Exact solvedness and solver design](docs/solver.md)

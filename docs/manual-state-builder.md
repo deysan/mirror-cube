@@ -89,4 +89,4 @@ Manual-workflow checks, excluding the separately maintained photo tools: **627 t
 
 No automatic identification, draft persistence/export, edit undo stack, arbitrary dimension entry, free-drag camera, or photo import is added. The ideal cuboids omit bevels, stickers, gaps, and the internal mechanism. A mistaken but reachable input yields a solution for that input, not necessarily the physical cube.
 
-Photo reconstruction remains a separate planned workflow and is excluded from this change. No photographs are needed for manual reconstruction. Future photo integration must preserve ambiguity and pass the same explicit confirmation/validation boundary.
+Photo tools and photo-specific documentation remain intact under `tools/photo-geometry/` and the [photo guides](photo-input.md). No new calibration photograph is needed to try manual reconstruction. Future photo integration must preserve ambiguity and pass the same explicit confirmation/validation boundary.
