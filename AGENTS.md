@@ -1,65 +1,34 @@
 # Coding agent instructions
 
-## Context
-
-MirrorCube is an interactive, step-by-step guide to solving a 2×2 Mirror Cube. The application will provide its interface and solution instructions in English and Ukrainian. The owner is a frontend developer experienced in React and TypeScript who wants to review changes, understand the architecture, and control decisions.
-
-There are two first-class input families: manual input (turn/scramble or directly place and orient the eight pieces), and reconstruction/confirmation from photographs. Both feed the same solution search and animated instructions. Complete the manual-input solve workflow first; photo input is required but deliberately deferred until the solver and playback work. Do not assume one photo is sufficient or that move history will be available to the solver.
-
-Before working, read [README.md](README.md), the [product description](docs/product.md), and the [roadmap](docs/roadmap.md). Do not treat planned features as already implemented.
-
-The owner has successfully used the direct manual state builder and authorized committing it without photo functionality. Photo work is preserved, committed, and pushed separately on `feat/offline-photo-tools` by explicit owner request; do not merge it into `main`. The owner approved the editor-only free-orbit camera work on `main` and explicitly authorized committing and pushing this stage. Future commits and pushes still require separate permission. The implemented builder is described in `docs/manual-state-builder.md`; do not confuse a mechanically valid draft with a verified match to a physical cube. The initial trial exposed difficulty matching pieces and orientations; main-view dimension rulers remain, but the owner requested removing length search and the enlarged detail view. The app now uses only `MIRRORED_CUBE_PARAMETERS` (X=22/28, Y=20/30, Z=33/17); no geometry selector is wanted. This supports the reported smallest-piece UFR pose R=22/U=20/F=17. The owner subsequently confirmed successfully solving their physical cube through the manual workflow; do not generalize that successful trial to arbitrary puzzles or photo recognition. Preserve the factory's historical no-argument Z=17 convention for unchanged offline photo probes; it is not the app's configuration. If none of the three proper poses matches a physical piece, investigate dimensions, reference directions, identity, and model handedness rather than assuming user error or adding arbitrary rotations.
+Read [README.md](README.md), [architecture](docs/architecture.md), and the [roadmap](docs/roadmap.md) before changing the project. Consult the [user guide](docs/usage.md), [solver design](docs/solver.md), and [security notes](docs/security.md) when relevant.
 
 ## Collaboration
 
-- Explain decisions to the owner in Ukrainian, at a developer-friendly level.
-- Write all repository documentation in English. Ukrainian application translations are expected when localization is implemented.
-- Describe the product as a guide to solving a 2×2 Mirror Cube; do not add experimental or commercialization framing.
-- Work in small, complete stages: one clear behavior change or a focused infrastructure task at a time.
-- Before each stage, briefly explain what will be implemented, which parts will change, and why this approach was chosen.
-- Do not start an unapproved stage. The roadmap is not permission to implement every item.
-- After each stage, summarize the changes, key files, verification steps, and known limitations. Stop until the owner asks to continue.
-- Each commit requires a separate, direct request from the owner. Plan approval, permission to edit, or a request to continue is not commit permission; do not rely on earlier standing authorization. Push also requires separate explicit permission.
-- Do not add out-of-scope features or empty modules for future stages.
-- Update documentation when implementation changes documented assumptions or commands.
+- Communicate with the owner in Ukrainian; write repository documentation in English.
+- Keep application text and instructions bilingual, English/Ukrainian.
+- Agree on small stages before implementing them. A roadmap is not authorization.
+- Report changes, checks, and limitations after each stage, then stop.
+- Every commit, push, deployment, new dependency, or paid service requires explicit permission for that action. Do not treat historical permissions as standing authorization.
+- Preserve unrelated work. Do not rewrite Git history or choose a license independently.
+- Keep documentation about current behavior, not conversations, temporary files, or an approval log.
 
-## Technical direction
+## Product and architecture
 
-- Use React, TypeScript, and Vite, with Three.js and React Three Fiber for rendering.
-- Three.js replaces the initial solved-only SVG renderer to handle depth and occlusion during shape-changing turns. No separate animation-timing library is currently needed.
-- Before adding any further graphics or animation tool, explain the specific problem it solves.
-- Separate puzzle state/move rules, solution search, geometry/projection/animation, and UI. When photo input is implemented, keep recognition as a separate boundary that produces a candidate state for confirmation and validation; do not scaffold it beforehand.
-- Keep the mathematical model and solution search independent of React, Three.js, and the selected language. Convert domain data to Three.js objects only in the rendering layer.
-- Keep free camera orbit editor-only and display-only. Short clicks select; mouse/one-finger drags must not select. Preserve the eight presets and exact dimensions; dispose camera listeners on exit and restore the standard solution camera before turns/playback.
-- Introduce abstractions and dependencies only when there is a concrete need.
-- Preserve each piece's exact local dimensions along all three axes during turns. Do not equate similar dimensions or determine solved status from an approximate silhouette.
-- Implement English and Ukrainian user-facing text as part of the localization and subsequent UI stages. Language switching must not reset puzzle state or solution progress.
-- Choose the localization approach when it is needed; do not scaffold unused translation modules in advance.
+- MirrorCube is a guide to solving a 2×2 Mirror Cube, not a general cube-model editor.
+- The first public release targets the manual workflows on `main`. Photo input is a separate future workflow; do not merge `feat/offline-photo-tools` into `main` without approval.
+- The app explicitly uses `MIRRORED_CUBE_PARAMETERS`: edge 50 mm; splits X=22, Y=20, Z=33. Keep the generic factory's historical Z=17 default for offline-tool compatibility; it is not an app option.
+- Preserve exact piece identities and integer dimensions. Do not merge similar sizes, infer solvedness from silhouettes, or silently repair twists.
+- A piece at a fixed corner has three proper orientations. Investigate dimensions, identity, reference frame, and handedness if a physical match fails; do not assume user error or add improper rotations.
+- Keep domain rules and solver free of React, Three.js, UI, and localization dependencies.
+- Drafts, animation/replay previews, and camera transforms are not committed puzzle state. Validate and explicitly confirm drafts before solving.
+- Search and table construction run in a worker. Terminate on cancellation, reject stale results, and never label budget exhaustion as unsolvability or return partial solutions.
+- Commit moves/history/progress exactly once after matching animation completion. Preserve monotonic IDs and the last committed state on failure.
+- Free orbit is editor-only. Preserve click/drag separation, exact dimension labels, preset access, listener cleanup, and the standard solution camera on exit.
+- Language changes must not reset puzzle state, camera inspection, workers, or playback.
 
-## Verification
+## Verification and publication
 
-Add meaningful tests alongside the relevant functionality:
-
-- solved-state geometry is correct;
-- a move followed by its inverse restores the state;
-- four quarter-turns restore the state;
-- turns preserve piece identities and local dimensions;
-- animation endpoints match exact move geometry, and duplicate/stale completion callbacks cannot commit twice;
-- state validation rejects impossible corner twists but accepts legal odd permutations on a 2×2;
-- solver encoding preserves exact poses through round-trips and maps moves correctly through all global frames;
-- solver table transitions agree with exact moves, and lower bounds do not overestimate solution length;
-- applying a returned solution actually solves the input state without requiring its move history;
-- completed searches match independent shortest-path checks, and cancellation/budget limits never return partial paths or claim unsolvability;
-- search/table construction stay in the worker, cancellation terminates active work, and obsolete worker/request/snapshot results cannot replace current results;
-- solution steps commit puzzle/history/progress exactly once, invalidate on unrelated turns, and verify exact solvedness at completion;
-- language switching updates user-facing text without changing puzzle state or solution progress.
-
-Run the checks available for the current stage. Report what was verified and what could not be verified; never claim that unrun tests passed.
-
-## GitHub and deployment
-
-- The repository is public: never commit secrets, tokens, private keys, or local environment files.
-- Target Netlify's free plan with a `*.netlify.app` address. Manual solve/playback works locally, but deployment remains deferred and requires separate owner approval; the complete planned release includes both input workflows.
-- Do not enable paid options, services, or a custom domain without separate approval. Check current free-plan terms before deployment.
-- Do not add deployment configuration before a buildable application exists.
-- The owner chooses the license; do not add one independently.
+- Follow [development checks](docs/contributing.md); report only checks actually run.
+- Never commit credentials, private photos, local annotations, or image-containing reports. Review all staged files, not just source code.
+- Treat every file in `dist` and every client-side environment value as public. Publish only `dist`, never the repository root or photo-tool output.
+- Netlify's free plan is the intended host. Verify its current limits before deployment; no paid options, custom domain, or auto recharge without approval.

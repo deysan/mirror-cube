@@ -1,112 +1,76 @@
-# Exact solvedness and solver design
+# Solver design
 
-## Status and scope
+The solver accepts a validated state without move history. It has no React, Three.js, camera, localization, or piece-dimension dependency. Manual turns and confirmed builder input use the same path; future photo input must pass the same validation boundary. See [architecture](architecture.md) for exact pose conventions.
 
-`src/puzzle/solved.ts` implements exact solved-state detection. Plain-data/reachability validation and normalized compact coordinates are also implemented; see [the state-encoding guide](state-encoding.md) for APIs and conventions. Normalized move-transition and admissible distance tables are implemented as well; see [the solver-table guide](solver-tables.md). The synchronous IDA* search core is implemented; see [the search guide](solver-search.md) for its results, limits, cancellation contract, and measurements. [Worker/UI integration](solver-worker.md) is implemented, including real worker termination and stale-result protection. [Animated solution playback](solution-playback.md) is implemented as a separate snapshot-bound transaction, including a final exact solvedness check. This document records the design and required checks; it is not permission to start all following stages.
+## Exact solvedness
 
-Input comes from manual turns/scrambling of the virtual cube or, in a later stage, photographs of a physical puzzle. Both are supported workflows using the same state-based solver. Neither solvedness nor search may require the moves that produced that state. History remains a UI convenience for undo, not a solver input.
+`isSolved(state)` requires all eight distinct identities, a common proper signed-axis orientation `R`, and every slot equal to `R × homeSlot(pieceId)`. This accepts the 24 proper whole-cube rotations, but rejects reflections, individual twists, and inconsistent poses.
 
-## Implemented goal predicate
+Identity matters: similar dimensions, a flush bounding box, or an approximately cubic silhouette cannot substitute for exact poses. The predicate is not an unknown-input validator; `false` does not distinguish an unsolved legal state from an invalid state.
 
-```ts
-import { isSolved } from "./puzzle/solved";
+## Coordinates and frame mapping
 
-const solved = isSolved(state);
-```
+`encodeState` validates first and normalizes by the inverse orientation of reference piece `---`, placing that corner at home with identity orientation. This is a coordinate change, not a physical move. The saved proper rotation `frame` restores the original holding orientation.
 
-The argument is a structurally typed `PuzzleState` using the conventions in [the move-model guide](moves.md). The function has no React, Three.js, language, camera, history, or piece-dimension dependency. It does not mutate the input or require a particular corner-array order.
+| Coordinate | Range | Encoding |
+| --- | --- | --- |
+| `permutation` | 0..5039 | Lexicographic Lehmer rank of seven non-reference identities in canonical slot order |
+| `twist` | 0..728 | Six base-three digits, most significant first, for slots `--+` through `++-`; final twist follows from the sum constraint |
 
-A state is solved exactly when:
+`{permutation: 0, twist: 0}` is solved. There are **7! × 3⁶ = 3,674,160** normalized states. All 24 global frames share coordinates. `decodeState(coordinates, frame?)` returns an independent full state and rejects out-of-range coordinates or improper frames. The encoding is internal, not a versioned import/export format.
 
-1. It contains all eight distinct home-sign piece IDs, once each.
-2. Every piece has the same orientation matrix `R`.
-3. `R` is a proper signed-axis rotation: its columns are signed coordinate unit vectors and `R.x × R.y = R.z`.
-4. Each piece's current slot is `R × homeSlot(pieceId)`.
+Search uses `R R′ R2 U U′ U2 F F′ F2`, which leave the reference corner fixed. `mapMoveFromFrame` rotates face normals through the saved frame while preserving outside-view turn direction, including when the destination is a negative-side face.
 
-These conditions recognize the solved arrangement up to any of the 24 proper rotations of the entire cube. Rotating the whole assembled puzzle does not make it unsolved. Reflections (determinant −1), scale, shear, and approximate rotations are not allowed.
+## Tables and heuristic
 
-The implementation takes the first corner's orientation as the candidate global rotation, verifies it, then checks all identities, orientations, and slots against it. It need not construct 24 full goal states on every call. Exactly eight distinct valid IDs and their rotated home slots also ensure complete, unique slot occupancy.
+`createSolverTables()` explicitly builds independently owned tables through exact domain moves and coordinate encoding. Importing the module does not initialize them.
 
-Examples:
+| Buffer | Type | Entries |
+| --- | --- | --- |
+| Permutation transitions | `Uint16Array` | 5040 × 9 |
+| Twist transitions | `Uint16Array` | 729 × 9 |
+| Permutation distances | `Uint8Array` | 5040 |
+| Twist distances | `Uint8Array` | 729 |
 
-- The initial state is solved.
-- R alone is not solved; R followed by R′ is solved again.
-- R followed by L′ is a rigid whole-cube rotation and is solved, although it differs from the initial state.
-- Returning all pieces to their home slots without correcting their orientations is not sufficient.
-- Giving all pieces the same orientation without rotating their slots consistently is not sufficient.
+Transition indexing is `rank * 9 + moveIndex`. The factors evolve independently; tests compare nonzero cross-factor combinations with full poses. BFS supplies exact projected distances, with maximum depths 7 and 6 respectively. The buffers total **109,611 bytes**, excluding temporary allocations and object overhead. Callers must treat typed-array contents as read-only.
 
-### Why dimensions are not compared
+The admissible, consistent heuristic is `max(permutationDistance, twistDistance)`, **not their sum**: one move may improve both. `applyTableMove` and `estimateRemainingMoves` expect intact factory tables and reject invalid coordinate/move indices.
 
-A piece ID identifies its immutable definition, including all three exact dimensions. The predicate restores those identified pieces to their defined arrangement, allowing only a common rigid rotation. It never merges pieces by similar sizes, compares bounding boxes, or estimates a cubic silhouette. A 29 mm edge and a 30 mm edge remain distinct in the model.
+## IDA* search
 
-For custom parameter sets with indistinguishable or symmetric piece shapes, this deliberately remains an identity-and-orientation goal. It does not enumerate additional visually equivalent arrangements. The owner's confirmed geometry has distinct local sizes; supporting other visual equivalences would require a separate explicit decision.
+`solvePuzzle(candidate, tables, options?)` keeps a private canonical input snapshot. It runs iterative-deepening A* with increasing minimum-exceeded bounds and prunes consecutive turns of the same face. There is no runtime full-state graph or transposition cache.
 
-### What this predicate does not validate
+All supported turns, including 180°, cost one move. A successful search returns a shortest sequence in this face-turn metric, modulo whole-cube rotation—not necessarily the fewest quarter-turns, shortest animation, or initial global orientation.
 
-`isSolved` is not an arbitrary JSON parser or a complete physical-reachability validator. It rejects structurally typed states that fail the solved conditions, including missing/duplicate/unknown IDs or invalid rotations, but `false` does not distinguish a legal unsolved state from an impossible state. Untrusted or incomplete photo input must be parsed and validated separately before search. `validatePuzzleState` now provides that plain-data boundary for the discrete state shape, without recognizing images or repairing uncertain input.
+Before returning a result, it maps moves to the input frame, replays them with exact `applyMove` against the **original full-pose snapshot**, and requires `isSolved`. It never publishes a partial or unverified path or falls back to reversing history.
 
-The 24 rotations refer to **face-aligned puzzle coordinates**, not the continuous camera pose of a photograph. Photo reconstruction must separate camera/puzzle-frame estimation from discrete piece slots and orientations. Floating-point camera transforms do not belong in the goal predicate.
+| Result | Meaning |
+| --- | --- |
+| `solution` | World-frame moves and visited-node count; an empty sequence means already solved |
+| `invalid` | Validation diagnostic; no search |
+| `cancelled` | Cancellation observed; no partial path |
+| `limit` | Depth, node, or time budget exhausted; **not proof of unsolvability** |
 
-The original predicate stage did not change the UI. “Ready to turn” still reports interaction readiness, not solvedness; the solve panel now separately reports an already-solved search result.
+Defaults are depth **11**, **5,000,000** node entries, and **5,000 ms** traversal time. Depth accepts integers 0..11; nodes must be nonnegative safe integers; time must be finite/nonnegative. Invalid options throw `RangeError`. Inputs and tables are not mutated.
 
-## Selected search direction: IDA*
+An optional synchronous `shouldCancel` callback is checked before traversal and each node. The injectable clock must be finite and nondecreasing; it is sampled before traversal, every 256 nodes, and at a reached goal. Cancellation takes precedence over node and time limits. Traversal timing excludes validation, table construction, and final replay; it is not a hard wall-clock deadline. Valid already-solved input needs no traversal, unless pre-cancelled.
 
-Use iterative-deepening A* (IDA*) over compact corner coordinates. It searches with an increasing bound on `movesSoFar + lowerBoundToGoal`, retaining a search path rather than a full visited graph of puzzle states. This is suitable for a browser-based 2×2 solver without a server dependency.
+## Worker boundary
 
-All quarter-turns and half-turns count as one move (face-turn metric). A completed search with admissible heuristics and sound pruning can return a shortest sequence in that metric; this does not imply minimum quarter-turn count or shortest animation time. Local traversal measurements are documented in the search guide, but they are not browser/mobile responsiveness guarantees.
+`solver.worker.ts` delegates to `workerHandler.ts`; `SolverClient` owns browser resources and `useSolverWorker` connects requests to the session. Vite builds a separate module-worker asset. No worker or table set is created on initial page load; a healthy worker lazily builds and reuses tables after the first request.
 
-### Normalization and coordinates
+Messages contain a request ID and structured-cloned puzzle snapshot, not history, language, React objects, or camera state. This is a private protocol between code from the same build, not a public message/import API.
 
-1. Validate the input's identities, slots, proper orientations, pose consistency, and corner-twist constraint. Do not reject odd corner permutations: a legal quarter-turn is itself an odd permutation of four corners on a 2×2.
-2. Use piece `---` as a reference corner. Mathematically rotate the input frame by the inverse of that corner's orientation, putting it at its home slot with identity orientation. This is a coordinate change, not a physical move or an animation.
-3. Encode the remaining seven-corner permutation (`7! = 5,040` possibilities) and six independent corner twists (`3^6 = 729` possibilities); the remaining twist follows from the twist-sum constraint.
-4. Search uses R, U, and F with all three angles in this normalized frame. These faces do not move the reference corner. Opposite-face turns are equivalent to inverse turns of the other layer up to a whole-cube rotation, consistent with the goal's global-rotation equivalence.
-5. Map the resulting face normals back to the original puzzle frame using the saved reference orientation. Preserve the outside-looking-in turn convention. The caller should receive ordinary `Move` values usable by `applyMove` and the existing renderer, not instructions tied to the normalization frame.
+The client accepts only its current worker's pending request ID. The reducer additionally requires the original snapshot and a ready idle scene. Duplicate/stale replies cannot replace newer results. Search does not move the puzzle automatically.
 
-This gives `7! × 3^6 = 3,674,160` legal states modulo whole-cube rotation. The implemented corner-twist convention, validation, encoder/decoder, and frame-to-world move mapping are detailed in the [state-encoding guide](state-encoding.md). Twist uses a consistent cyclic ordering of outward normals, not a naive single-axis label.
+**Cancellation terminates the worker**, because a queued message cannot interrupt synchronous table building or search. Cancelled/failed workers are discarded; retry rebuilds tables. A **15-second watchdog** covers loading, initialization, and search; browser suspension can delay it. All timers/workers are cleaned up on completion as appropriate, cancellation, failure, or unmount. There is no main-thread search fallback.
 
-### Implemented lower bounds and pruning
+Manual turns, undo, scrambling, and new search invalidate an old plan; solution navigation retains its snapshot-bound plan. Language changes do not restart requests. Worker-only failure leaves manual controls usable. Scene failure terminates pending work and preserves the committed puzzle/history.
 
-`createSolverTables` builds transition tables through the exact domain moves and breadth-first distances separately for the permutation and twist coordinates. `estimateRemainingMoves` uses the **maximum**, not the sum, of those distances: one physical turn can improve both coordinates, so summing may overestimate. Construction is explicit and synchronous inside the dedicated worker; it never runs in a render callback or on the main UI thread.
+## Verification
 
-Search prunes consecutive turns of the same face, since they can be combined into one supported turn or canceled. Add other pruning only with correctness tests. Table generation and the transition encoding must agree with the existing exact move model.
+Automated checks include all 24 proper global frames, all 18 face/angle choices, invalid inputs, exact result replay, factor round-trips, transition invariants, distance certificates, budgets, non-mutation, and stale-result/resource guards.
 
-Do not use reversed history as a fallback solver or call a search limit “unsolvable.” Distinguish a found solution, a validated solved input (empty sequence), invalid input, and interrupted/budget-limited search.
+Independent full-pose BFS checks cover 2,232 normalized states through depth four and 1,536 all-face/multi-goal states through depth two. A test-only complete coordinate BFS covers **3,674,160 states** and confirms diameter **11**; seeded/deep search lengths are compared against it. This oracle shares transition tables with search, so it does not independently prove every full-pose transition, and IDA* is not tested on every possible input. No full-state database is shipped.
 
-### Integration and verification plan
-
-Implement in small stages:
-
-1. **Implemented:** input validation, reference-frame normalization, compact coordinates, and move mapping, with round-trip and move-equivalence tests.
-2. **Implemented:** transition/distance tables, projection checks, shortest-distance certificates, and independent depth-four full-state checks.
-3. **Implemented:** the pure IDA* search engine, with exact result replay, limits/cancellation, independent full-pose shortest-path checks, and sampled comparisons to a complete coordinate-graph BFS oracle.
-4. **Implemented:** browser worker integration, termination-based cancellation/stale-result protection, and bilingual result handling.
-5. **Implemented:** user-paced animated solution playback with snapshot-bound progress, exactly-once move/history commits, and final solvedness verification.
-6. **Next input boundary:** guided photo capture, reconstruction, correction/confirmation, and validation; establish the protocol before choosing recognition tools.
-
-The worker should receive a puzzle-state snapshot, not React state or history. Applying a result must be tied to the snapshot that was searched. Do not block the main thread with an unbounded search or apply a late result to a changed puzzle.
-
-Search verification must apply every returned sequence through the existing `applyMove` implementation and require `isSolved(result)`. Tests must include all global frames, mixed states provided without their generating moves, input rejection, and cancellation/limits. The expected state should not be reconstructed using only the same compact encoding being tested.
-
-No empty solver/worker modules, external solver libraries, image models, or network services are added in this stage.
-
-## Current automated checks
-
-`src/puzzle/solved.test.ts` independently enumerates signed permutation matrices by permutation parity, rather than reusing the predicate's cross-product test. It checks:
-
-- all 24 proper frames accepted and all 24 improper frames rejected;
-- every face/angle move from every solved frame, followed by its inverse;
-- whole-cube rotations composed of opposite face turns;
-- slots and orientations both required, including a corner twisted in its home slot;
-- missing, duplicate, unknown, or swapped identities and inconsistent slots;
-- non-exact, non-finite, repeated-axis, and scaled orientations rejected;
-- agreement with an explicit 24-goal oracle throughout a mixed legal walk;
-- close dimensions, reordered/deserialized states, and frozen-input non-mutation.
-
-`src/puzzle/validation.test.ts` and `src/solver/coordinates.test.ts` additionally verify reachability constraints, clean snapshots, all coordinate-factor ranges, history-free round-trips, and move equivalence through all global frames. See the state-encoding guide for coverage and limits.
-
-`src/solver/tables.test.ts` checks factor transitions, inverse/turn identities, distance certificates, cross-factor independence, and heuristic admissibility against an independent shallow full-pose traversal. Initialization and ownership details are in the solver-table guide.
-
-`src/solver/search.test.ts` checks returned solutions, all global frames, shortest lengths against full-pose and coordinate BFS oracles, snapshot ownership, and validation/cancellation/budget contracts. The complete coordinate graph is traversed only by the test oracle, not by application initialization. See the search guide for coverage and limits.
-
-Run `npm test` and `npm run build`. The original domain stages had no UI or renderer changes. Subsequent worker/UI browser checks are documented in the worker guide.
+UI tests mock WebGL and worker scheduling. Real-browser worker/playback checks complement them; they do not establish every browser's or device's performance. Follow the [development checklist](contributing.md).

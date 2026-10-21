@@ -13,3 +13,10 @@ coverage/
 # Local logs and OS files
 *.log
 .DS_Store
+
+# Secondary safeguards; keep private material outside every checkout
+/private/
+*.pem
+*.key
+*.p12
+*.pfx
