@@ -52,6 +52,8 @@ Manual turns, ordinary undo, scrambling, or a new search discard the old plan. T
 
 English/Ukrainian switching preserves the current session. Reloading does not: there is no draft export, saved progress, or persisted language selection.
 
-WebGL 2 is required. If the scene fails, controls are disabled and the last committed puzzle is preserved in memory; an unfinished turn is not applied. An open draft can be cancelled. Reload to retry rendering, knowing that it clears the session.
+The page can appear before its 3D modules finish loading. A localized loading message reserves the scene area; language switching remains available, but puzzle actions wait for WebGL readiness.
+
+WebGL 2 is required. A failed graphics download or scene initialization shows the localized fallback; check connectivity and WebGL support before reloading. If the scene fails, controls are disabled and the last committed puzzle is preserved in memory; an unfinished turn is not applied. An open draft can be cancelled. Reload to retry rendering, knowing that it clears the session.
 
 The model uses ideal cuboids without stickers, bevels, gaps, or a mechanism. The manual workflow has been used successfully with a matching physical cube, but this does not establish compatibility with arbitrary Mirror Cube models. Photo import is not part of the current application.

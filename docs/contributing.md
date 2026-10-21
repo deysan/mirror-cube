@@ -10,6 +10,7 @@ npm test             # Vitest suite
 npm run test:watch   # Watch mode
 npm run typecheck    # TypeScript only
 npm run build        # TypeScript + production build in dist
+npm run check:bundle # In-memory production build: chunk graph and size budgets
 npm run preview      # Serve the production build locally
 npm audit            # Known dependency advisories; requires registry access
 ```
@@ -24,7 +25,7 @@ The application uses React/TypeScript and Three.js/React Three Fiber. Keep domai
 - Preserve snapshot guards, atomic completion, stale-result rejection, and resource cleanup.
 - Include English/Ukrainian text and keyboard-accessible alternatives for new controls.
 - Update the relevant documentation rather than appending a development diary.
-- Run tests, type checking/build, and `git diff --check`. Review staged filenames/content before publication.
+- Run tests, type checking/build, `npm run check:bundle`, and `git diff --check`. Review staged filenames/content before publication.
 - Follow [security and privacy practices](security.md). Do not add dependencies, publish, or rewrite history without explicit approval.
 
 ## Browser smoke checks
@@ -38,7 +39,8 @@ Use the production build, not only the dev server. Check both languages at deskt
 5. Execute steps, navigate forward/backward, and replay a demonstration. Check each intermediate commit and final solvedness; reset only after confirmation.
 6. Check keyboard focus, bounded instruction/history lists, no horizontal overflow, and reduced motion.
 7. Simulate WebGL context loss. An unfinished turn/replay must not commit; preserve the completed prefix and offer the localized fallback.
-8. Check the console and Network panel for errors and unexpected external requests.
+8. Delay graphics-chunk requests: the loading message and language controls must work without unlocking puzzle actions. Fail the scene/core/renderer request separately: expect a localized fallback, no retry loop, and recovery after reload. Confirm the scene box does not jump in size when loading completes.
+9. Check the console and Network panel for errors and unexpected external requests.
 
 Domain tests include complete coordinate-graph BFS; they do not exercise every full pose through the browser. jsdom tests mock WebGL and use controlled worker stubs. Local Chrome/WebGL checks have covered the manual workflows at desktop/mobile widths, but are not a committed cross-browser E2E suite. Touch emulation is not a substitute for a physical touch device.
 
@@ -46,7 +48,21 @@ Domain tests include complete coordinate-graph BFS; they do not exercise every f
 
 Only `dist` is a deployable application artifact. Source, docs, tests, development tools, and private reports must not be served as the site root. `npm run preview` is a local check, not production hosting.
 
-The graphics bundle currently triggers Vite's 500 kB chunk warning. This is not a build failure. Measure dependency contribution and loading behavior before changing chunk boundaries or warning thresholds; splitting files does not itself reduce total downloaded code. Bundle optimization is a separate follow-up.
+`LazyCubeScene` loads the graphics stack after the page shell can render. `vite.config.ts` separates React and Three.js's existing core/renderer modules, with shared bundler helpers extracted automatically. Vendor chunks do not statically depend on the app entry, so an app-only change can retain their content hashes. The default 500 kB warning threshold is unchanged; all current JS chunks are below it.
+
+Measured production JS sizes (bytes; worker/CSS excluded):
+
+| Metric | Before splitting | Split build |
+| --- | ---: | ---: |
+| Initial entry + synchronous imports | 1,221,284 | 281,147 |
+| Initial JS, gzip level 9 | 332,571 | 87,882 |
+| Largest JS chunk | 1,221,284 | 377,285 |
+| Total browser JS | 1,221,284 | 1,228,682 |
+| Total browser JS, gzip level 9 | 332,571 | 338,590 |
+
+The initial graph is about 77% smaller; total JS is about 0.6% larger (1.8% gzip) because splitting adds overhead and loses some cross-file compression. Graphics still load on the first visit because the cube is immediately needed. This improves loading isolation and cache reuse, not total-code size or a measured percentage of device/network speed. The separate 8,434-byte solver worker is unchanged and still starts only on search.
+
+`tools/check-bundle.mjs` builds in memory, checks the static import graph for graphics/search leakage, requires a separate worker and app-independent vendor chunks, and enforces budgets: 350 kB initial JS, 110 kB initial gzip, 360 kB total browser gzip, 500 kB per chunk, and 12 kB for the worker. Gzip is computed consistently with Node zlib at level 9, not inferred from host transfer sizes. Review these budgets and the Three.js module-matching rules deliberately when upgrading dependencies.
 
 The first release targets the manual workflows from `main`. Netlify setup, current free-plan limits, security headers, caching, and HTTPS smoke checks still need a separately approved deployment stage. Photo input is not a prerequisite for that release and must not be merged from its separate branch as part of deployment preparation.
 

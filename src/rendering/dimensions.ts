@@ -1,24 +1,9 @@
 import { Camera, OrthographicCamera, Vector3 } from "three";
 import { homeSlot } from "../puzzle/corners";
 import type { PieceId, Vector3 as Lengths } from "../puzzle/model";
-export const DIMENSION_AXES = ["x", "y", "z"] as const;
-export type DimensionAxis = typeof DIMENSION_AXES[number];
-
-export const AXIS_COLORS = { x: "#ffb45b", y: "#73d9ff", z: "#d5afff" } as const;
-export type Point2 = readonly [number, number];
-export interface LabelReservation { readonly position: Point2; readonly halfWidth: number; readonly halfHeight: number }
-export interface DimensionRuler {
-  readonly axis: DimensionAxis;
-  readonly face: string;
-  readonly value: number;
-  readonly edge: readonly [Point2, Point2];
-  readonly line: readonly [Point2, Point2];
-  readonly label: Point2;
-}
-export interface DimensionDrawing {
-  readonly width: number; readonly height: number;
-  readonly rulers: readonly DimensionRuler[];
-}
+import { DIMENSION_AXES, type DimensionAxis, type Point2, type LabelReservation, type DimensionRuler, type DimensionDrawing } from "./dimensionDrawing";
+export { DIMENSION_AXES, AXIS_COLORS } from "./dimensionDrawing";
+export type { DimensionAxis, Point2, LabelReservation, DimensionRuler, DimensionDrawing } from "./dimensionDrawing";
 export const axisFace = (slot: PieceId, axis: DimensionAxis) =>
   axis === "x" ? (slot[0] === "+" ? "R" : "L") : axis === "y" ? (slot[1] === "+" ? "U" : "D") : (slot[2] === "+" ? "F" : "B");
 

@@ -1,8 +1,9 @@
-import { Component, useId, useState, type ReactNode } from "react";
+import { Component, Suspense, useId, useState, type ReactNode } from "react";
 import type { PendingTurn } from "../interaction/turnSession";
 import type { SolvedCube } from "../puzzle/model";
 import type { PuzzleState } from "../puzzle/state";
-import { CubeScene, type EditorSceneOptions } from "./CubeScene";
+import type { EditorSceneOptions } from "./CubeScene";
+import { LazyCubeScene } from "./LazyCubeScene";
 import { DimensionDrawing } from "./DimensionDrawing";
 import type { SelectedDrawing } from "./SelectedDimensions";
 
@@ -19,6 +20,7 @@ interface CubeViewProps {
   readonly title: string;
   readonly description: string;
   readonly unavailableMessage: string;
+  readonly loadingMessage: string;
 }
 
 class SceneBoundary extends Component<
@@ -42,7 +44,7 @@ class SceneBoundary extends Component<
 
 export function CubeView({
   cube, state, activeTurn, onTurnComplete, onReady, onFailure, failed,
-  title, description, unavailableMessage, editor, unit = "mm",
+  title, description, unavailableMessage, loadingMessage, editor, unit = "mm",
 }: CubeViewProps) {
   const descriptionId = useId();
   const [drawing, setDrawing] = useState<SelectedDrawing | null>(null);
@@ -55,13 +57,15 @@ export function CubeView({
       <span id={descriptionId} hidden>{description}</span>
       {failed ? fallback : (
         <SceneBoundary fallback={fallback} onFailure={onFailure}>
-          <div className="cube-scene" role="img" aria-label={title} aria-describedby={descriptionId}>
-            <CubeScene
-              cube={cube} state={state} activeTurn={activeTurn} editor={editor}
-              onTurnComplete={onTurnComplete} onReady={onReady} onFailure={onFailure} onDrawing={setDrawing}
-            />
-            {currentDrawing && <DimensionDrawing drawing={currentDrawing} unit={unit} />}
-          </div>
+          <Suspense fallback={<p className="cube-fallback" role="status">{loadingMessage}</p>}>
+            <div className="cube-scene" role="img" aria-label={title} aria-describedby={descriptionId}>
+              <LazyCubeScene
+                cube={cube} state={state} activeTurn={activeTurn} editor={editor}
+                onTurnComplete={onTurnComplete} onReady={onReady} onFailure={onFailure} onDrawing={setDrawing}
+              />
+              {currentDrawing && <DimensionDrawing drawing={currentDrawing} unit={unit} />}
+            </div>
+          </Suspense>
         </SceneBoundary>
       )}
     </div>

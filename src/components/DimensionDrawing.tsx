@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { AXIS_COLORS, DIMENSION_AXES, type DimensionDrawing as Drawing } from "../rendering/dimensions";
+import { AXIS_COLORS, DIMENSION_AXES, type DimensionDrawing as Drawing } from "../rendering/dimensionDrawing";
 
 /** Accessible equivalents live in the face-labeled dimension list; this SVG never handles pointer input. */
 export function DimensionDrawing({ drawing, unit }: { drawing: Drawing; unit: string }) {

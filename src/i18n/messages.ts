@@ -177,7 +177,7 @@ export const messages = {
     stageNote: "Manual turns, a physical-state builder, scrambling, history, animated undo, solution search, and step-by-step playback are available. Photo input is not available yet. Reloading resets the puzzle, history, and solution progress.",
     cubeTitle: "2×2 Mirror Cube",
     cubeDescription: "A fixed 3D isometric view of the puzzle. During a turn, four highlighted pieces rotate together; the other four remain still.",
-    sceneUnavailable: "The 3D view is unavailable. Check WebGL 2 support and reload the page. Turn controls are disabled; completed turns are kept, and unfinished or queued turns are not applied.",
+    sceneUnavailable: "The 3D view is unavailable. Check your connection and WebGL 2 support, then reload the page. Turn controls are disabled; completed turns are kept, and unfinished or queued turns are not applied.",
   },
   uk: {
     editor: editorMessages.uk,
@@ -266,6 +266,6 @@ export const messages = {
     stageNote: "Доступні ручні повороти, конструктор фізичного стану, перемішування, історія, анімоване скасування, пошук розв’язку та покрокове відтворення. Введення з фото ще недоступне. Перезавантаження скидає кубик, історію та прогрес розв’язку.",
     cubeTitle: "Дзеркальний кубик 2×2",
     cubeDescription: "Фіксований об’ємний ізометричний вигляд кубика. Під час повороту чотири підсвічені деталі обертаються разом, а решта чотири залишаються нерухомими.",
-    sceneUnavailable: "Об’ємне відображення недоступне. Перевірте підтримку WebGL 2 та перезавантажте сторінку. Кнопки поворотів заблоковані; завершені ходи збережено, а незавершені й заплановані — не застосовано.",
+    sceneUnavailable: "Об’ємне відображення недоступне. Перевірте з’єднання та підтримку WebGL 2, потім перезавантажте сторінку. Кнопки поворотів заблоковані; завершені ходи збережено, а незавершені й заплановані — не застосовано.",
   },
 } as const satisfies Record<Language, Messages>;

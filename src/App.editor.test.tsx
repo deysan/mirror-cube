@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { useEffect, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { CubeScene } from "./components/CubeScene";
+import { LazyCubeScene as CubeScene } from "./components/LazyCubeScene";
 import { messages } from "./i18n/messages";
 import { PIECE_IDS } from "./puzzle/corners";
 import { draftFromState } from "./puzzle/draft";
@@ -13,7 +13,7 @@ import { validatePuzzleState } from "./puzzle/validation";
 import { solvePuzzle } from "./solver/search";
 import { createSolverTables } from "./solver/tables";
 import type { SolverRequest, SolverResponse } from "./solver/workerProtocol";
-vi.mock("./components/CubeScene", () => ({ CubeScene: vi.fn() }));
+vi.mock("./components/LazyCubeScene", () => ({ LazyCubeScene: vi.fn() }));
 const en = messages.en, uk = messages.uk;
 function Scene({ onReady }: ComponentProps<typeof CubeScene>) { useEffect(onReady, [onReady]); return <canvas />; }
 const scene = () => vi.mocked(CubeScene).mock.calls.at(-1)![0];

@@ -17,7 +17,7 @@ The first deployment will publish `main` **without photo input**. The preparatio
 2. Measure the graphics bundle and improve loading/chunking where useful; rerun production checks.
 3. Configure Netlify's free plan, publish only `dist`, verify security headers and HTTPS behavior, and smoke-test the deployed workflows.
 
-Documentation cleanup and a local repository review are covered by this change. Bundle optimization and deployment remain pending. No public deployment is configured yet.
+Documentation cleanup and a local repository review are complete. Graphics loading/chunking is implemented and locally verified, including loading/error states and build budgets. Deployment is the remaining preparation stage; no public deployment is configured yet.
 
 Each implementation stage, commit, push, deployment, or new dependency requires explicit approval. This roadmap is not blanket authorization.
 

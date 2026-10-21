@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { useEffect, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { CubeScene } from "./components/CubeScene";
+import { LazyCubeScene as CubeScene } from "./components/LazyCubeScene";
 import { messages, type Language } from "./i18n/messages";
 import { createSolvedCube } from "./puzzle/model";
 import { applyMove } from "./puzzle/moves";
@@ -13,7 +13,7 @@ import { createScramble, SCRAMBLE_LENGTH } from "./puzzle/scramble";
 vi.mock("./puzzle/model", { spy: true });
 vi.mock("./puzzle/scramble", { spy: true });
 // jsdom has no WebGL. Test UI/state wiring here, transforms in Node, and pixels in a browser.
-vi.mock("./components/CubeScene", () => ({ CubeScene: vi.fn() }));
+vi.mock("./components/LazyCubeScene", () => ({ LazyCubeScene: vi.fn() }));
 
 function SceneStub({ onReady }: ComponentProps<typeof CubeScene>) {
   useEffect(onReady, [onReady]);

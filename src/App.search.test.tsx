@@ -4,12 +4,12 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { StrictMode, useEffect, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { CubeScene } from "./components/CubeScene";
+import { LazyCubeScene as CubeScene } from "./components/LazyCubeScene";
 import { messages } from "./i18n/messages";
 import { SOLVER_WATCHDOG_MS, type SolverWorker } from "./interaction/solverClient";
 import type { SolverOutcome, SolverRequest, SolverResponse } from "./solver/workerProtocol";
 
-vi.mock("./components/CubeScene", () => ({ CubeScene: vi.fn() }));
+vi.mock("./components/LazyCubeScene", () => ({ LazyCubeScene: vi.fn() }));
 function SceneStub({ onReady }: ComponentProps<typeof CubeScene>) {
   useEffect(onReady, [onReady]);
   return <canvas data-testid="scene-canvas" />;

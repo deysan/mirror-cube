@@ -150,6 +150,7 @@ export function App() {
             title={text.cubeTitle}
             description={session.editor ? text.editor.description : text.cubeDescription}
             unavailableMessage={text.sceneUnavailable}
+            loadingMessage={text.sceneLoading}
           />
           <figcaption>{session.editor ? `${text.editor.selected}: ${slotCode(selectedSlot)}` : text.caption}</figcaption>
         </figure>

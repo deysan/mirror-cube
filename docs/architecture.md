@@ -87,6 +87,10 @@ Each identity at a fixed slot has exactly three proper corner orientations. `cor
 
 ## Rendering and camera resources
 
+`CubeView` renders a module-scoped `LazyCubeScene` through React Suspense. Until WebGL readiness, it reserves the scene area, shows a localized loading message, and leaves puzzle actions locked while language/measurements remain available. Import rejection uses the existing scene-failure boundary; it does not trigger automatic retries or reloads. A loaded module alone is not scene readiness, and language changes do not recreate the lazy component or canvas.
+
+Plain overlay types, axes, and colors live in `rendering/dimensionDrawing.ts`, separate from the Three.js-dependent projection code. DOM overlays must not pull graphics dependencies back into the initial import graph. Build boundaries and budgets are checked by `npm run check:bundle`; see [build notes](contributing.md#build-and-publication).
+
 Three.js provides depth-tested cuboids and edge outlines. The orthographic camera fits a pivot-centered sphere containing every piece throughout turns; normal solving uses U/F/R. Animation lasts 0.6 seconds for quarter-turns and 0.9 for half-turns, uses smoothstep, and caps frame delta at 0.05 seconds. Reduced motion skips interpolation through the same completion transaction.
 
 Free inspection exists only in the editor. OrbitControls from the installed Three.js package rotate around the origin with no zoom, pan, damping, autorotation, or two-finger action. A capture-phase 5-pixel threshold prevents drags (including out-and-back drags) from selecting. Presets disable free mode; exit restores the solution camera. Listeners, pointer capture, and styles are released on disposal.
