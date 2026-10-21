@@ -7,6 +7,8 @@ import type { Piece, PieceId, SolvedCube } from "../puzzle/model";
 import { homeSlot, PIECE_IDS } from "../puzzle/corners";
 import { equalVector } from "../puzzle/orientation";
 import { EditorMarkers } from "./EditorMarkers";
+import { InspectionOrbit } from "./InspectionOrbit";
+import { editorCameraZoom } from "../rendering/inspectionOrbit";
 import { SelectedDimensions, type SelectedDrawing } from "./SelectedDimensions";
 import type { Orientation, PuzzleState } from "../puzzle/state";
 import { createPieceMatrix, getPuzzleRadius } from "../rendering/pieceTransform";
@@ -15,6 +17,7 @@ import { getTurnAngle, getTurnDuration } from "../rendering/turnAnimation";
 export interface EditorSceneOptions {
   readonly selectedSlot: PieceId;
   readonly viewCorner: PieceId;
+  readonly freeOrbit: boolean;
   readonly onSelect: (slot: PieceId) => void;
 }
 
@@ -95,7 +98,9 @@ function MovingLayer({ turn, onComplete, children }: {
 }
 
 /** A fixed pivot-centered sphere fits every pose without camera jumps between turns. */
-function FixedCamera({ cube, corner = "+++", editing = false }: { cube: SolvedCube; corner?: PieceId; editing?: boolean }) {
+function FixedCamera({ cube, corner = "+++", editing = false, freeOrbit = false }: {
+  cube: SolvedCube; corner?: PieceId; editing?: boolean; freeOrbit?: boolean;
+}) {
   const { camera, size, invalidate } = useThree();
   const radius = getPuzzleRadius(cube);
 
@@ -104,14 +109,17 @@ function FixedCamera({ cube, corner = "+++", editing = false }: { cube: SolvedCu
 
     const distance = radius * 3;
     const signs = homeSlot(corner);
-    camera.position.set(distance * signs.x, distance * signs.y, distance * signs.z);
-    camera.lookAt(0, 0, 0);
-    camera.zoom = Math.min(size.width, size.height) / (radius * 2 * (editing ? 1.3 : 1.08));
+    if (!freeOrbit) {
+      camera.position.set(distance * signs.x, distance * signs.y, distance * signs.z);
+      camera.lookAt(0, 0, 0);
+    }
+    camera.zoom = editing ? editorCameraZoom(radius, size.width, size.height)
+      : Math.min(size.width, size.height) / (radius * 2 * 1.08);
     camera.near = radius * 0.01;
     camera.far = radius * 20;
     camera.updateProjectionMatrix();
     invalidate();
-  }, [camera, size.width, size.height, radius, invalidate, corner, editing]);
+  }, [camera, size.width, size.height, radius, invalidate, corner, editing, freeOrbit]);
 
   return null;
 }
@@ -144,7 +152,8 @@ export function CubeScene({ cube, state, activeTurn, onTurnComplete, onReady, on
   return (
     <Canvas orthographic frameloop="demand" dpr={[1, 2]}>
       <SceneLifecycle onReady={onReady} onFailure={onFailure} />
-      <FixedCamera cube={cube} corner={editor?.viewCorner ?? "+++"} editing={!!editor} />
+      <FixedCamera cube={cube} corner={editor?.viewCorner ?? "+++"} editing={!!editor} freeOrbit={editor?.freeOrbit ?? false} />
+      {editor && <InspectionOrbit enabled={editor.freeOrbit} />}
       <SelectedDimensions cube={cube} state={state} slot={editor?.selectedSlot} view={editor?.viewCorner} onDrawing={onDrawing} />
       {editor && <EditorMarkers cube={cube} state={state} selected={editor.selectedSlot} onSelect={editor.onSelect} />}
       <ambientLight intensity={1.1} />

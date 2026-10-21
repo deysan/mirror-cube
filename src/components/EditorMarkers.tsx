@@ -7,6 +7,7 @@ import { equalVector } from "../puzzle/orientation";
 import type { PuzzleState } from "../puzzle/state";
 import { FACE_LAYERS, type Face } from "../puzzle/moves";
 import { getPuzzleRadius } from "../rendering/pieceTransform";
+import { editorCameraZoom } from "../rendering/inspectionOrbit";
 
 /** Display-only empty-slot targets and fixed-world face labels. Never read back as state. */
 export function EditorMarkers({ cube, state, selected, onSelect }: {
@@ -32,7 +33,7 @@ export function EditorMarkers({ cube, state, selected, onSelect }: {
   useEffect(() => () => labels.forEach(l => l.texture.dispose()), [labels]);
   const viewport = useThree(state => state.size);
   const radius = getPuzzleRadius(cube);
-  const zoom = Math.max(1, Math.min(viewport.width, viewport.height)) / (radius * 2 * 1.3);
+  const zoom = editorCameraZoom(radius, viewport.width, viewport.height);
   const labelSize = Math.max(8, 20 / zoom);
   const distance = radius * 1.3;
   return <group>

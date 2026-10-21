@@ -1,6 +1,6 @@
-import { useLayoutEffect } from "react";
-import { useThree } from "@react-three/fiber";
-import { OrthographicCamera } from "three";
+import { useCallback, useLayoutEffect, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Matrix4, OrthographicCamera } from "three";
 import { getPuzzleRadius } from "../rendering/pieceTransform";
 import { cornerTwist, homeSlot } from "../puzzle/corners";
 import { placementDimensions } from "../puzzle/draft";
@@ -12,14 +12,17 @@ import { faceLabelReservations, projectDimensions, type DimensionDrawing } from 
 export interface SelectedDrawing {
   readonly state: PuzzleState; readonly slot: PieceId; readonly view: PieceId; readonly drawing: DimensionDrawing;
 }
-/** Runs after the fixed camera layout effect; emits only display data to the DOM overlay. */
+/** Reproject after layout or a changed camera frame, never on idle/unchanged frames. */
 export function SelectedDimensions({ cube, state, slot, view, onDrawing }: {
   cube: SolvedCube; state: PuzzleState; slot: PieceId | undefined; view: PieceId | undefined;
   onDrawing: ((drawing: SelectedDrawing | null) => void) | undefined;
 }) {
   const { camera, size } = useThree();
-  useLayoutEffect(() => {
+  const last = useRef<{ world: Matrix4; projection: Matrix4 } | null>(null);
+  const update = useCallback(() => {
     if (!onDrawing) return;
+    camera.updateMatrixWorld();
+    last.current = { world: camera.matrixWorld.clone(), projection: camera.projectionMatrix.clone() };
     const corner = slot ? state.corners.find(c => equalVector(c.slot, homeSlot(slot))) : null;
     const piece = cube.pieces.find(p => p.id === corner?.pieceId);
     if (!slot || !view || !corner || !piece || !(camera instanceof OrthographicCamera) || size.width < 100 || size.height < 90) { onDrawing(null); return; }
@@ -27,5 +30,11 @@ export function SelectedDimensions({ cube, state, slot, view, onDrawing }: {
       placementDimensions(piece, slot, cornerTwist(corner)), slot,
       { reserved: faceLabelReservations(camera, size.width, size.height, getPuzzleRadius(cube)), avoidPiece: true }) });
   }, [camera, size.width, size.height, cube, state, slot, view, onDrawing]);
+  useLayoutEffect(update, [update]);
+  useFrame(() => {
+    if (!slot || !view || !onDrawing) return;
+    camera.updateMatrixWorld();
+    if (!last.current?.world.equals(camera.matrixWorld) || !last.current.projection.equals(camera.projectionMatrix)) update();
+  });
   return null;
 }

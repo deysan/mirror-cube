@@ -57,6 +57,25 @@ describe("mirrored default geometry", () => {
 });
 
 describe("physical-state builder UI", () => {
+  it("keeps free inspection separate from the draft and language, with presets and editor exit restoring fixed views", () => {
+    render(<App />); const canvas = document.querySelector("canvas"), committed = scene().state;
+    click(en.editor.open); queryClick('[data-piece="--+"]'); const draft = scene().state;
+    click(en.editor.freeOrbit);
+    expect(scene().editor!.freeOrbit).toBe(true);
+    expect(within(screen.getByRole("group", { name: en.editor.camera })).getAllByRole("button")
+      .every(b => b.getAttribute("aria-pressed") === "false")).toBe(true);
+    click("Українська"); expect(scene().editor!.freeOrbit).toBe(true); expect(scene().state).toBe(draft);
+    expect(document.querySelector("canvas")).toBe(canvas); expect(WorkerStub.instances).toHaveLength(0);
+    click(uk.editor.lookSelected); expect(scene().editor!.freeOrbit).toBe(false); expect(scene().editor!.viewCorner).toBe("+++");
+    click(uk.editor.freeOrbit); click(uk.editor.solutionView); expect(scene().editor!.freeOrbit).toBe(false);
+    click(uk.editor.freeOrbit); click(uk.editor.freeOrbit); expect(scene().editor!.freeOrbit).toBe(false);
+    click(uk.editor.freeOrbit); click(uk.editor.cancel); expect(scene().editor).toBeUndefined(); expect(scene().state).toBe(committed);
+    click(uk.editor.open); expect(scene().editor!.freeOrbit).toBe(false);
+    click(uk.editor.copy); click(uk.editor.freeOrbit); click(uk.editor.confirm);
+    expect(scene().editor).toBeUndefined(); expect(scene().state).toEqual(committed);
+    click(uk.editor.open); expect(scene().editor!.freeOrbit).toBe(false);
+    act(() => scene().onFailure()); expect(disabled(uk.editor.freeOrbit)).toBe(true);
+  });
   it("starts empty, disables duplicates, preserves draft/selection/view across languages, and never sends previews to a worker", () => {
     render(<App />); const original = scene().state, canvas = document.querySelector("canvas");
     click(en.editor.open); expect(scene().state.corners).toHaveLength(0); expect(disabled(en.editor.confirm)).toBe(true);

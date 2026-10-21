@@ -40,7 +40,7 @@ Repository documentation is maintained in English. Ukrainian user-facing transla
 - Face-turn controls.
 - Animated scrambling from the current state, which is initially solved. Repeated scrambling preserves existing history rather than resetting the puzzle.
 - Move history and undo for the latest turn.
-- A direct physical-state builder with exact piece choices, three orientations per position, selected-edge dimensions, eight inspection viewpoints, validation, and confirmation without requiring generating moves.
+- A direct physical-state builder with exact piece choices, three orientations per position, selected-edge dimensions, eight preset viewpoints and editor-only free camera orbit, validation, and confirmation without requiring generating moves.
 - Solution search from a valid state, independent of how it was obtained and without requiring move history.
 - Step-by-step solution playback with highlighted pieces, navigation through intermediate forward/backward moves, and non-committing replay for physical-puzzle review.
 - Reset to the default solved pose after confirming deletion of history and solution.
@@ -55,7 +55,7 @@ Each piece has a stable identity and its own local dimensions along all three ax
 
 Similar dimensions must not be treated as equal: differences of a few millimeters must remain represented in the model. An approximately cubic silhouette is not sufficient to determine whether the puzzle is solved. The implemented goal predicate requires every identified piece to have its exact home pose up to one common rigid rotation of the whole cube. All 24 proper face-aligned orientations are accepted; reflections are not. It does not require move history. See the [goal contract and solver design](solver.md).
 
-Puzzle state is the source of truth. Projection and intermediate animation frames do not determine move legality or solved status.
+Puzzle state is the source of truth. Projection and intermediate animation frames do not determine move legality or solved status. Free inspection changes only the builder camera, not placements or reference faces; solving always restores the standard U/F/R view. Short clicks select, while mouse/one-finger drags rotate the camera without selecting. Presets remain keyboard-accessible; free zoom and pan are not offered.
 
 The implemented solved-state geometry uses rectangular pieces without bevels, gaps, or an internal mechanism. The application's single mirrored configuration uses the owner's size pairs for their [Cayro 2×2 Mirror Cube](https://bi.ua/ukr/product/zerkalnyy-kubik-rubika-cayro-2h2-8380.html): a 50 mm edge, with X layers of 22/28 mm, Y layers of 20/30 mm, and Z layers of 33/17 mm (B/F). The size pairs were confirmed by the owner, not independently verified against a manufacturer specification. The owner requested the mirrored convention after reporting the smallest piece at UFR with R=22/U=20/F=17; this pose is now supported. The general factory's historical no-argument parameters remain unchanged for offline photo reproducibility and are not an application option.
 

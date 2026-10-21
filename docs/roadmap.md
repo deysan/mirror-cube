@@ -215,13 +215,21 @@ The owner then requested **only the mirrored geometry as the application default
 
 Model tests preserve the historical no-argument factory convention used by the untouched photo tools, while checking mirrored geometry invariants and the reported UFR pose in a reachable F2 state. Renderer tests cover all 192 poses, and UI/browser checks cover manual construction through worker solving and playback. The owner reports successfully completing the manual-input-to-physical-solution workflow with the mirrored geometry. This verifies the tested physical case, not arbitrary models or recognition accuracy. Photo work stays paused; commits, pushes, and deployment need separate permission.
 
+## Implemented follow-up: editor-only free inspection
+
+The approved **Free inspection** toggle allows left-mouse/one-finger camera orbit in the manual builder, without changing placements, history, or solver state. Short taps select; drags, including out-and-back gestures, do not. The eight presets and fixed-world face labels remain. Rulers reproject as the camera moves; nearly end-on edges may omit a ruler while retaining all exact text lengths. Zoom, pan, damping, and two-finger camera gestures are disabled.
+
+Presets exit free mode; disabling the toggle restores the last preset. Resize and language changes preserve the free angle. Apply/cancel restore the normal U/F/R solution camera, and reopening starts in fixed mode. Controls and gesture resources are disposed on exit; no continuous idle rendering or new dependency is introduced. Automated checks and production Chrome mouse/touch-emulation checks at desktop/mobile widths cover selection, gestures, overlay updates, camera restoration, worker isolation, and context loss.
+
+The owner approved this work and explicitly authorized committing and pushing it on `main`, separately from the photo-tools branch. Browser touch emulation is not a physical-device or cross-browser guarantee.
+
 ## Agreed rendering direction and deployment order
 
 The current renderer uses Three.js with React Three Fiber. Correct depth and occlusion during shape-changing turns justify replacing the solved-only SVG renderer. Animation timing does not need an additional library at this point.
 
 The manual solve/playback workflow is now available locally. Netlify deployment remains deferred and requires separate approval; the complete planned release includes photo input as well. The uncommitted deployment configuration and setup guide have been removed; no Netlify site was created.
 
-The manual state builder has completed a successful owner-reported physical trial. Separately maintained local photo work remains outside this commit. Resume the separate photo path only on the owner's direction. Each commit now requires a separate, direct owner request; plan approval or permission to continue is not commit authorization. Pushing also requires separate explicit permission.
+The manual state builder has completed a successful owner-reported physical trial. The owner separately authorized preserving, committing, and pushing the offline photo work on `feat/offline-photo-tools`; it remains outside `main` and is not merged into this work. Resume the separate photo path only on the owner's direction. Each commit now requires a separate, direct owner request; plan approval or permission to continue is not commit authorization. Pushing also requires separate explicit permission.
 
 ## Final functional goal: two inputs, one solving workflow
 

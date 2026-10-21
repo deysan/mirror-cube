@@ -30,6 +30,8 @@ export function App() {
   const wasEditing = useRef(false);
   const [selectedSlot, setSelectedSlot] = useState<PieceId>("+++");
   const [viewCorner, setViewCorner] = useState<PieceId>("+++");
+  const [freeOrbit, setFreeOrbit] = useState(false);
+  const onView = useCallback((corner: PieceId) => { setViewCorner(corner); setFreeOrbit(false); }, []);
   const draftPreview = useMemo(() => session.editor ? { corners: draftCorners(session.editor) } : null, [session.editor]);
   const onReady = useCallback(() => dispatch({ type: "scene-ready" }), []);
   const onFailure = useCallback(() => dispatch({ type: "scene-failed" }), []);
@@ -133,12 +135,12 @@ export function App() {
         <figure className="puzzle-card" ref={viewRef}>
           <div className="view-heading">
             <span className="status" aria-live="polite" aria-atomic="true">{status}</span>
-            <span>{session.editor ? `${text.editor.view}: ${slotCode(viewCorner)}` : text.viewLabel}</span>
+            <span>{session.editor ? `${text.editor.view}: ${freeOrbit ? text.editor.freeOrbit : slotCode(viewCorner)}` : text.viewLabel}</span>
           </div>
           <CubeView
             cube={cube}
             state={draftPreview ?? (session.activeTurn?.kind === "replay" ? session.activeTurn.previewState : session.puzzle)}
-            editor={session.editor ? { selectedSlot, viewCorner, onSelect: setSelectedSlot } : undefined}
+            editor={session.editor ? { selectedSlot, viewCorner, freeOrbit, onSelect: setSelectedSlot } : undefined}
             activeTurn={session.activeTurn}
             onTurnComplete={onTurnComplete}
             onReady={onReady}
@@ -155,10 +157,10 @@ export function App() {
         <aside className="details">
           {session.editor ? <StateBuilder cube={cube} draft={session.editor} selected={selectedSlot}
             onSelect={setSelectedSlot} dispatch={dispatch} text={text} disabled={session.sceneStatus !== "ready"}
-            view={viewCorner} onView={setViewCorner} /> : <>
+            view={viewCorner} onView={onView} freeOrbit={freeOrbit} onFreeOrbit={() => setFreeOrbit(value => !value)} /> : <>
           <div className="search-actions builder-entry">
             <button type="button" ref={builderButton} disabled={controlsDisabled} onClick={() => {
-              setSelectedSlot("+++"); setViewCorner("+++");
+              setSelectedSlot("+++"); setViewCorner("+++"); setFreeOrbit(false);
               dispatch({ type: "editor-open" });
             }}>{text.editor.open}</button>
           </div>

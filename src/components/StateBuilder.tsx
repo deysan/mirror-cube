@@ -28,13 +28,16 @@ function PieceThumbnail({ piece }: { piece: Piece }) {
   </svg>;
 }
 
-function BuilderViewControls({ text, view, selected, onView, disabled }: {
+function BuilderViewControls({ text, view, selected, onView, disabled, freeOrbit, onFreeOrbit }: {
   text: Messages; view: PieceId; selected: PieceId; onView: (slot: PieceId) => void; disabled: boolean;
+  freeOrbit: boolean; onFreeOrbit: () => void;
 }) {
   return <div className="builder-view-controls">
     <p>{text.editor.cameraHint}</p>
+    <button type="button" disabled={disabled} aria-pressed={freeOrbit} onClick={onFreeOrbit}>{text.editor.freeOrbit}</button>
+    <p>{text.editor.freeOrbitHint}</p>
     <div className="builder-camera-grid" role="group" aria-label={text.editor.camera}>
-      {EDITOR_SLOTS.map(slot => <button type="button" key={slot} disabled={disabled} aria-pressed={view === slot}
+      {EDITOR_SLOTS.map(slot => <button type="button" key={slot} disabled={disabled} aria-pressed={!freeOrbit && view === slot}
         aria-label={`${text.editor.view} ${slotCode(slot)}: ${slotFaces(slot).map(f => text.faceNames[f]).join(" / ")}`}
         onClick={() => onView(slot)}>{slotCode(slot)}</button>)}
     </div>
@@ -45,9 +48,9 @@ function BuilderViewControls({ text, view, selected, onView, disabled }: {
   </div>;
 }
 
-export function StateBuilder({ cube, draft, selected, onSelect, dispatch, text, disabled, view, onView }: {
+export function StateBuilder({ cube, draft, selected, onSelect, dispatch, text, disabled, view, onView, freeOrbit, onFreeOrbit }: {
   cube: SolvedCube; draft: PuzzleDraft; selected: PieceId; onSelect: (slot: PieceId) => void;
-  view: PieceId; onView: (slot: PieceId) => void;
+  view: PieceId; onView: (slot: PieceId) => void; freeOrbit: boolean; onFreeOrbit: () => void;
   dispatch: (action: TurnAction) => void; text: Messages; disabled: boolean;
 }) {
   const title = useRef<HTMLHeadingElement>(null);
@@ -66,7 +69,7 @@ export function StateBuilder({ cube, draft, selected, onSelect, dispatch, text, 
   return <section className="state-builder" aria-labelledby="builder-title">
     <h2 id="builder-title" tabIndex={-1} ref={title}>{t.title}</h2>
     <p>{t.intro}</p><p>{t.caption}</p><p className="stage-note">{t.frameHint}</p>
-    <BuilderViewControls text={text} view={view} selected={selected} onView={onView} disabled={disabled} />
+    <BuilderViewControls text={text} view={view} selected={selected} onView={onView} disabled={disabled} freeOrbit={freeOrbit} onFreeOrbit={onFreeOrbit} />
     <fieldset disabled={disabled}>
       <legend>{t.positions}</legend>
       <div className="builder-slot-grid">
