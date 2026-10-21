@@ -64,7 +64,7 @@ The initial graph is about 77% smaller; total JS is about 0.6% larger (1.8% gzip
 
 `tools/check-bundle.mjs` builds in memory, checks the static import graph for graphics/search leakage, requires a separate worker and app-independent vendor chunks, and enforces budgets: 350 kB initial JS, 110 kB initial gzip, 360 kB total browser gzip, 500 kB per chunk, and 12 kB for the worker. Gzip is computed consistently with Node zlib at level 9, not inferred from host transfer sizes. Review these budgets and the Three.js module-matching rules deliberately when upgrading dependencies.
 
-The first release targets the manual workflows from `main`. Netlify setup, current free-plan limits, security headers, caching, and HTTPS smoke checks still need a separately approved deployment stage. Photo input is not a prerequisite for that release and must not be merged from its separate branch as part of deployment preparation.
+The manual workflows from `main` are hosted on Netlify; see [deployment](deployment.md) for configuration, headers, caching, and release checks. Git pushes do not automatically publish. Each further release requires approval; keep photo tools on their separate branch.
 
 ## README screenshot
 

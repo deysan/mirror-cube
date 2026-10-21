@@ -9,15 +9,11 @@
 - Animated solution steps, forward/backward navigation, demonstration replay, and confirmed reset.
 - English/Ukrainian interface with responsive layout and keyboard-accessible controls.
 
-## First public release: manual workflows
+## Public release: manual workflows
 
-The first deployment will publish `main` **without photo input**. The preparation sequence is:
+The manual app is live at **https://mirror-cube.netlify.app/**, built from `main` **without photo input**. Documentation cleanup, a bounded repository review, graphics loading/chunking, and the initial Netlify deployment are complete.
 
-1. Simplify documentation, add a clean screenshot, and review repository security/privacy.
-2. Measure the graphics bundle and improve loading/chunking where useful; rerun production checks.
-3. Configure Netlify's free plan, publish only `dist`, verify security headers and HTTPS behavior, and smoke-test the deployed workflows.
-
-Documentation cleanup and a local repository review are complete. Graphics loading/chunking is implemented and locally verified, including loading/error states and build budgets. Deployment is the remaining preparation stage; no public deployment is configured yet.
+Only `dist` is published. HTTPS, security/cache headers, worker loading, and desktop/mobile workflows have been checked on the public site. Git continuous deployment is not connected; see [deployment](deployment.md) for release checks, hosting limits, and remaining verification boundaries.
 
 Each implementation stage, commit, push, deployment, or new dependency requires explicit approval. This roadmap is not blanket authorization.
 

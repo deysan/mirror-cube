@@ -38,11 +38,11 @@ A local review of application baseline `b6c62df` and photo-tools baseline `0f443
 
 The review uses local pattern scanning and targeted code inspection, not an independent penetration test or exhaustive proof. It does not cover unreachable Git objects/reflogs, forks, GitHub issues/attachments/caches, account settings, host configuration, or every transitive dependency's implementation. Documentation cleanup does not erase old text from history or the separate photo branch.
 
-## Before deployment
+## Deployment boundary
 
 - Repeat dependency and staged-file checks; review the final `dist` contents and runtime requests.
 - Publish only `dist`, not the repository root, source maps, private artifacts, or photo reports. Source maps are currently not emitted by the production build; their absence does not make client code secret.
-- Configure and test a Content Security Policy, `X-Content-Type-Options`, referrer policy, framing restrictions, and an appropriate permissions policy on the host. These headers are **not configured yet**.
-- Base CSP on actual requirements: same-origin module workers/scripts/styles and canvas-generated image textures. React/Three.js use runtime styles; test enforcement rather than copying a policy that breaks the scene or allowing broad script execution.
+- `public/_headers` configures CSP, `X-Content-Type-Options`, referrer policy, framing restrictions, permissions policy, and asset caching. These headers are enforced on the public Netlify site; repeat their checks after changes. See [deployment](deployment.md).
+- CSP permits same-origin scripts/module workers and runtime styles, but not inline scripts or `eval`. The inline-style allowance is needed by React/Three.js, not a permission for JavaScript. Test enforcement when requirements change rather than adding broad script allowances.
 - Verify HTTPS, asset caching, worker MIME/loading, scene failure handling, both languages, and mobile interaction on the deployed site.
 - Review Netlify account access and current free-plan limits separately. Do not enable paid options or publish a site without approval.

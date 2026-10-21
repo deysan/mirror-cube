@@ -2,6 +2,8 @@
 
 An interactive guide to solving a **2×2 Mirror Cube**, with an exact 3D model and step-by-step animated instructions in **English and Ukrainian**.
 
+**[Open MirrorCube](https://mirror-cube.netlify.app/)**
+
 ![MirrorCube showing a mixed 3D puzzle and its turn controls](docs/images/mirror-cube.webp)
 
 ## What you can do
@@ -37,7 +39,6 @@ npm run preview   # Serve dist locally
 - A valid entered state is mechanically reachable, but still needs to match your physical cube.
 - A modern browser with WebGL 2 is required. Reloading clears the puzzle, history, draft, solution, and language selection.
 - Photo input is not available. Offline photo tools are maintained separately on [`feat/offline-photo-tools`](https://github.com/deysan/mirror-cube/tree/feat/offline-photo-tools) and are not part of this app build.
-- Public deployment is not configured yet. The first release will include the manual workflows; photo input is planned separately.
 
 ## Documentation
 
@@ -46,6 +47,7 @@ npm run preview   # Serve dist locally
 - [Solver design](docs/solver.md)
 - [Development and verification](docs/contributing.md)
 - [Security and privacy](docs/security.md)
+- [Deployment and hosting](docs/deployment.md)
 - [Roadmap](docs/roadmap.md)
 
 Built with React, TypeScript, Vite, Three.js, and React Three Fiber.
